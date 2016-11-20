@@ -1,0 +1,14 @@
+9655c891286e5893cc09820d72d6f422 *DESCRIPTION
+28377b2d87325f3b8f7e2e88f491f86f *INDEX
+572ec3aa255d686093513a583e5b9672 *NAMESPACE
+652cb4e46e57a25bd1b1a62f2c989cc0 *R/MBHdesign.R
+7a7ca5e3e1d0a6ede6a640fc66b66a31 *R/sysdata.rda
+d35f1fa9f6c8f263011854a6b5377054 *build/vignette.rds
+5238bf6ac2b27e051dc84147b6cc54fe *inst/doc/MBHdesign.R
+c8e66d9f2146115807363646a713a5ff *inst/doc/MBHdesign.Rnw
+5583bfddc626d9acd1ede31e319a1d48 *inst/doc/MBHdesign.pdf
+61bd91686bf531b3d9779d0b85cd68a0 *man/alterInclProbs.Rd
+0f95603768d8a69dcde99a37e011952d *man/modEsti.Rd
+6ef3499fc7e28a99e6f41230969964ce *man/quasiSamp.Rd
+c8e66d9f2146115807363646a713a5ff *vignettes/MBHdesign.Rnw
+936456bea8d2d059addad48b2b3f8717 *vignettes/MBHdesign.bib

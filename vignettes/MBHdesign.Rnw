@@ -1,0 +1,235 @@
+%\VignetteIndexEntry{Spatially-Balanced Design with Legacy Sites}
+%\VignettePackage{MBHdesign}
+%\VignetteEngine{knitr::knitr}
+
+\documentclass[article,shortnames,nojss]{jss}
+
+%% almost as usual
+\author{Scott D. Foster\\CSIRO, Hobart, Tasmania, Australia}
+\title{An Introduction to \pkg{MBHdesign}}
+\date{\itshape\today}
+
+%% for pretty printing and a nice hypersummary also set:
+\Plainauthor{Scott D. Foster} %% comma-separated
+\Plaintitle{An Introduction to MBHdesign} %% without formatting
+\Shorttitle{MBHdesign} %% a short title (if necessary)
+
+\Abstract{
+  The MBHdesign package is useful for creating spatially balanced designs, especially when legacy sites are present. The package implements the methods described in \citet{fos16}, which is an extension of Balanced Adaptive Sampling \citep[BAS]{rob13}\footnotemark. In this tutorial, we will go through the three steps of:
+  \begin{enumerate}
+  	\item Altering inclusion probabilities for spatial balance, taking into account the location of legacy sites. This is done using the function \texttt{alterInclProbs};
+  	\item Generating spatially balanced designs for a given set of inclusion probabilities, through the function \texttt{quasiSamp}; and
+  	\item Analysing some (made up) data using model-based methods (using \texttt{modEsti}).
+  \end{enumerate}
+}
+\Keywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Spatially Correlated Poisson Sampling, GRTS, \proglang{R}}
+\Plainkeywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Spatially Correlated Poisson Sampling, GRTS, R} %% without formatting
+%% at least one keyword must be supplied
+
+\Address{
+  Scott D. Foster\\
+  CSIRO\\
+  Marine Laboratories\\
+  GPObox 1538\\
+  Hobart 7001\\
+  Australia
+  E-mail: \email{scott.foster@csiro.au}
+}
+
+%\usepackage{fullpage}
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{nicefrac}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\begin{document}
+
+\footnotetext[1]{although the function \texttt{quasiSamp()} is the only function that directly contains the idea in BAS}
+
+%<<prelim, echo = FALSE, results = "hide">>=
+<<prelim, echo = FALSE, results="hide">>=
+library( knitr)
+opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
+                      dpi=300, fig.show = "hold", fig.align = "center")
+@
+
+\section*{First Things First}
+
+Before starting with this introduction to \texttt{MBHdesign}, we need to make sure that everything is set up properly. Much of this will vary from computer to computer, but you must have a working version of R installed (preferably the latest one). At the time of writing, the latest version was R-3.3.2. It does not matter whether you prefer to use R through a development environment (such as RStudio) or through the command line -- the results will be the same. So, start R and then:
+<<setup1, eval=FALSE>>=
+install.packages( "MBHdesign")  
+@
+\noindent You will be asked which repository you want to use. Just use one that is geographically close to where you are (or where your computer is). Next load the package.
+<<setup2>>=
+library( MBHdesign)
+@
+\noindent For illustration is is also good to fix the random number seed, so that this document is reproducible \textit{exactly}.
+<<setSeed>>=
+set.seed( 747)  #a 747 is a big plane
+@
+\noindent Now, we are good to go with the rest of the introduction.
+
+\section*{The Illustrative Design Scenario}
+
+Let's pretend that we want to generate $n=10$ samples on a grid of points (representing the centres of a tessellation). The grid of points consists of $N=100\times100=10000$ points in 2-dimensional space (spanning the interval $[0,1]$ in both dimensions). Let's also pretend that there are 3 legacy sites, that have been sampled in previous survey efforts, and we wish to revisit them in the current survey. The legacy sites are located at random throughout the study area. Here, I have generated it all in R (painstakingly), but in a real application, most of this information could be read in from file.
+<<legacySites>>=
+#number of samples
+n <- 10
+#number of points to sample from
+N <- 100^2
+#the sampling grid (offset so that the edge locations have same area)
+offsetX <- 1/(2*sqrt( N))
+my.seq <- seq( from=offsetX, to=1-offsetX, length=sqrt(N))
+X <- expand.grid( my.seq, my.seq)
+#the legacy sites (three of them)
+legacySites <- matrix( runif( 6), ncol=2, byrow=TRUE)
+#names can be useful
+colnames( X) <- colnames( legacySites) <- c("X1","X2")
+@
+
+\section*{Inclusion Probabilities}
+
+Key to this whole design process is the concept of inclusion probabilities. Inclusion probabilities define the chance that any particular site will be part of the sample. So, if a site's inclusion probability is small, then the site is unlikely to be included into the sample. Specifying inclusion probabilities can improve efficiency of the sampling design. That is, standard errors can be reduced for a given number of samples. The `trick' is to specify inclusion probabilities so that the sites that should have highly variable observations are sampled more often \citep[e.g.][]{gra13}. In ecology, variance often increases with abundance \citep[due to Taylor's Power Law;][]{tay61}, so inclusion probabilities could be increased with abundance. If there is no knowledge about the area being sampled, then all sites should be given equal inclusion probabilities (equal to $\nicefrac{n}{N}$). The only formal requirement, in terms of \texttt{MBHdesign}, is that the inclusion probabilities must sum to $n$.
+
+Here, we are going to pretend that there is some gradient in the variance of the population under study. We stress that this is illustrative only.
+<<inclProbs, dpi=300, out.width='60%'>>=
+#non-uniform inclusion probabilities
+inclProbs <- 1-exp(-X[,1])
+#scaling to enforce summation to n
+inclProbs <- n * inclProbs / sum( inclProbs)
+#uniform inclusion probabilities would be inclProbs <- rep( n/N, times=N)
+#visualise
+image( x=unique( X[,1]), y=unique( X[,2]), 
+    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
+    main="(Undadjusted) Inclusion Probabilities", 
+    ylab=colnames( X)[2], xlab=colnames( X)[1])
+#The legacy locations
+points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
+@
+
+\section*{Accommodating Legacy Sites}
+
+To generate a design that is spatially balanced \textit{in both the $n$ new sample sites and the legacy sites}, we adjust the inclusion probabilities. The adjustment \citep[see][]{fos16} reduces the inclusion probabilities so that sites near legacy sites are less likely to be chosen in the new sample.
+<<alterInclProbs, dpi=300, out.width='60%'>>=
+#alter inclusion probabilities 
+#   so that new samples should be well-spaced from legacy
+altInclProbs <- alterInclProbs( legacy.sites=legacySites, 
+		potential.sites=X, inclusion.probs = inclProbs)
+#visualise
+image( x=unique( X[,1]), y=unique( X[,2]), 
+    z=matrix( altInclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
+    main="Adjusted Inclusion Probabilities",
+    ylab=colnames( X)[2], xlab=colnames( X)[1])
+#The legacy locations
+points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
+@
+\noindent So, the inclusion probabilities have been reduced around the legacy sites. It is perhaps worth noting that the reduction in inclusion probabilities, due to the legacy sites, can be viewed as \textit{sequential}. This means that the reduction for any legacy site is in addition to the reduction of all of the other legacy sites -- there is no extra joint effect. Also, the adjustment is proportional to the original inclusion probability, so that a small inclusion probability and a large inclusion probability are both adjusted proportionally to the same amount.
+
+There are some other arguments to the \texttt{altInclProbs()} function (omitted for clarity here). These can be seen to refine the call and/or to make the computer to do its work quicker. Type \texttt{?altInclProbs} for more details.
+
+\section*{Generating the Design}
+
+Irrespective of how the inclusion probabilities were obtained, we can now use them to generate a spatially balanced design.
+<<GetDesign, dpi=300, out.width='60%'>>=
+#generate the design according to the altered inclusion probabilities.
+samp <- quasiSamp( n=n, dimension=2, 
+	study.area=matrix( c(0,0, 0,1, 1,0, 1,1),ncol=2,  byrow=TRUE), 
+	potential.sites=X, inclusion.probs=altInclProbs)
+#visualise
+image( x=unique( X[,1]), y=unique( X[,2]), 
+    z=matrix( altInclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
+    main="Adjusted Inclusion Probabilities",
+    ylab=colnames( X)[2], xlab=colnames( X)[1])
+#The legacy locations
+points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
+points( samp[,1:2], pch=21)
+@
+\noindent Voil\`{a}! A spatially balanced design that incorporates legacy sites. It is contained in the object \texttt{samp}, which looks like:
+<<ShowDesign>>=
+print( samp, row.names=FALSE)
+@
+\noindent The columns of \texttt{samp} are: 
+\begin{itemize}
+ \item The sample locations in the \texttt{X1} and \texttt{X2} dimensions;
+ \item The inclusion probability for that sampling location; and
+ \item The row number (ID), of the original list of potential sites (X).
+\end{itemize}
+
+\section*{Analysis}
+
+After finalising the design, time comes to go and undertake the survey. For illustration, we do this \textit{in silico} and generate observations according to a pre-defined function \citep[following][amongst others]{fos16}.
+<<GetData>>=
+#generate some `observations' for the new sites
+Z <- 3*( X[samp$ID,1]+X[samp$ID,2]) + 
+			sin( 6*( X[samp$ID,1]+X[samp$ID,2]))
+#and some for the legacy sites
+Zlegacy <- 3*( legacySites[,1]+legacySites[,2]) + 
+			sin( 6*( legacySites[,1]+legacySites[,2]))
+@
+\noindent These data can be analysed in two ways: 1) design-based, which uses minimal assumptions about the data; and 2) model-based, which attempts to describe more aspects of the data. See \citet{fos16} for a more complete description. For design-based analysis we take a weighted average of the estimator for the legacy sites and the estimator for the new sites. In both cases the estimates follow \citet{hor52}. Please do read the section in \citet{fos16} for comments on estimation, it could save you some grief.
+<<HTestimate>>=
+#the proportion of legacy sites in the whole sample
+fracLegacy <- nrow( legacySites) / (n+nrow( legacySites))
+#inclusion probabilities for legacy sites
+#   (these are just made up, from uniform)
+LegInclProbs <- rep( nrow( legacySites) / N, nrow( legacySites))
+#estimator based on legacy sites only
+legacyHT <- (1/N) * sum( Zlegacy / LegInclProbs)
+#estimator based on new sites only
+newHT <- (1/N) * sum( Z / samp$inclusion.probabilities)
+mean.estimator <- fracLegacy * legacyHT + (1-fracLegacy) * newHT
+#print the mean
+print( mean.estimator)
+@
+\noindent This is pretty close to the true value of $2.9994$. To get a standard error for this estimate, we use the \texttt{total.est()} function from the \texttt{spsurvey} \citep{kin15}, which implements the neighbourhood estimator of \citet{ste03}.
+<<NNestimate>>=
+#load the spsurvey package
+library( spsurvey)
+#rescale the inclusion probs 
+#   (the sample frames are the same in legacy and new sites)
+tmpInclProbs <- ( c( samp$inclusion.probabilities, LegInclProbs) / n) * 
+						(n+nrow(legacySites))
+#calculate the standard error
+se.estimator <- total.est( z=c(Z, Zlegacy), 
+	wgt=1/tmpInclProbs, 
+	x=c(X[samp$ID,1], legacySites[,1]), 
+	y=c(X[samp$ID,2], legacySites[,2]))$StdError[2]
+#print it
+print( se.estimator)
+@
+
+For model-based mean and standard errors we follow the `GAMdist' approach in \citet{fos16}.
+<<ModEstimate>>=
+tmp <- modEsti( y=c( Z, Zlegacy), locations=rbind( X[samp$ID,], legacySites),
+	includeLegacyLocation=TRUE, legacyIDs=n + 1:nrow( legacySites),
+	predPts=X, control=list(B=1000))
+print( tmp)
+@
+
+In this case, the standard error estimates are quite different. On average, they tend to be (when there are only a few legacy sites). Even so, this level of difference is unusual.
+
+\section*{Last Things Last}
+
+The only remaining thing to do is to tidy up our workspace. First, to export our sample locations. Second, to remove all objects for this analysis from your workspace.
+<<Tidy>>=
+#write csv
+write.csv( samp, file="sample1.csv", row.names=FALSE)
+#tidy
+rm( list=ls())
+@
+
+%\bibliographystyle{authordate1}
+%\bibliography{/home/fos085/zoteroFiles/JabRefPDF/SDFReferences}
+\bibliography{./MBHdesign.bib}
+
+\section{Appendix}
+
+\subsection{Computational details}
+This vignette was created using the following R and add-on package versions
+
+<<sessionInfo, results = "asis", echo = FALSE>>=
+toLatex(sessionInfo())
+@
+
+\end{document}

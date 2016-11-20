@@ -1,0 +1,3 @@
+alterInclProbs                      Alters inclusion probabilities to accommodate legacy sites
+modEsti                             Get a model-based estimate of mean of a sampled area
+quasiSamp                           Generates a spatial design using Quasi-random numbers
