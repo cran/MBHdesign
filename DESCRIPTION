@@ -1,6 +1,6 @@
 Package: MBHdesign
 Title: Spatial Designs for Ecological and Environmental Surveys
-Version: 1.0.61
+Version: 1.0.63
 Author: Scott D. Foster
 Description: Provides spatially balanced designs from a set of (contiguous) potential sampling locations in a study region. Accommodates , without detrimental effects on spatial balance, sites that the researcher wishes to include in the survey for reasons other than the current randomisation (legacy sites).
 Maintainer: Scott Foster <scott.foster@csiro.au>
@@ -9,6 +9,6 @@ Imports: mgcv, geometry, randtoolbox, mvtnorm, stats, class
 Suggests: fields, graphics, knitr, spsurvey
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-11-22 06:40:12 UTC; fos085
+Packaged: 2017-05-24 06:05:08 UTC; fos085
 Repository: CRAN
-Date/Publication: 2016-11-22 09:06:48
+Date/Publication: 2017-05-24 06:15:40 UTC

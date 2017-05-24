@@ -4,7 +4,8 @@
 \description{ Generates a spatially balanced design for given inclusion probabilities over a grid of potential sampling locations
 }
 \usage{
- quasiSamp( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL)
+ quasiSamp( n, dimension=2, study.area=NULL, potential.sites=NULL,
+                              inclusion.probs=NULL, randStartType=2)
 }
 \arguments{
 \item{ n}{the number of samples to take}
@@ -12,6 +13,7 @@
 \item{ study.area}{a numeric matrix with dimension columns. This defines the sampling area from where the sites are selected (each row defines a vertex of the sampling area). If NULL (default), the study.area is defined to be the smallest (hyper-)rectangle that bounds the potential.sites. If potential.sites is also NULL (default), then the study area is taken to be the unit (hyper-)square. This argument is closely related to potential.sites.}
 \item{ potential.sites}{a matrix (of size Nxdimension) of the spatial coordinates of the N sampling locations, of which n<<N are taken as the sample. If NULL (default) N=10000 samples are placed on a regular grid. If study.area is defined, then this grid is over the smallest bounding (hyper-)rectangle for the study.area. If study.area is NULL, the grid is over the unit (hyper-)square.}
 \item{ inclusion.probs}{a vector specifying the inclusion probability for each of the N potential sampling sites. This is the probability that each site will be included in the final sample. Locations are ordered the same as the potential.sites argument. If NULL (default) equal inclusion probabilities are specified.}
+\item{ randStartType}{the type of random start Halton sequence to use. The choices are 2 (default) as described in Robertson et al (2013), and 1 which is a mis-interpretation of that method (constrained so that the size of the skip in each dimension is equal). Note that randStartType=1 is used in Foster et al (2017).}
 }
 \details{ This function is an implementation of the balanced adaptive sampling (BAS) designs presented in Robertson et al. (2013), which forms the basis for the methods in Foster et al (in review). The BAS approach uses Halton sequences of quasi-random numbers, which are evenly spread over space, as the basis for generating spatially balanced designs. In this implementation, we requrie that the inclusion probabilities be given as points in space and the BAS design is the set of these points that lie closest to a continuous-space Halton sequence. Computational speed has been rudimentily optimised, but (of course) it could be done better -- like coding outside of R{}, for example.
 }
@@ -23,9 +25,8 @@
 \references{
 \describe{
 \item{Robertson, B. L., Brown, J. A., McDonald, T. and Jaksons, P. (2013) BAS}{Balanced Acceptance Sampling of Natural Resources. Biometrics \emph{69}: 776--784 DOI: 10.1111/biom.12059}
+\item{Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R{}., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{NA}}{NA--NA DOI: 10.1111/2041-210X.12782}
 }
-
- Foster, S.D. et al. (in review.) Flexible Spatially-Balanced Designs that Incorporate Legacy Sites.
 }
 \examples{
 #generate samples on a 100 x 100 grid

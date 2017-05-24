@@ -34,7 +34,10 @@ The control list contains elements with names:
 \seealso{\code{\link{quasiSamp}}, \code{\link{alterInclProbs}}, and \code{total.est} from the \pkg{spsurvey} package. The total.est function provides design-based estimation of both mean and variance.
 }
 \author{Scott D. Foster}
-\references{ Foster, S.D. et al. (in review.) Flexible Spatially-Balanced Designs that Incorporate Legacy Sites.
+\references{
+\describe{
+\item{Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R{}., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{NA}}{NA--NA DOI: 10.1111/2041-210X.12782}
+}
 }
 \examples{
 #set up design parameters

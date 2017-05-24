@@ -271,7 +271,7 @@ function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL
 
 
 "quasiSamp" <-
-function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL) 
+function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2) 
 {
   #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
   #Distances between x- and y-locations need not be equal -- but why would they not be?
@@ -329,14 +329,19 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
 
   #Generate lots of quasi random numbers
   mult <- 10 #mult times n to be taken in any chunk (quicker this way, I think)
-
-  #initialise Halton Sequence (random start)
-  samp <- randtoolbox::halton( sample( 1:10000, 1), dim=dimension+1, init=TRUE) #initialisation of the sequence, note random end point.
-  
   njump <- n*mult #how many samples to consider at a time
 
-  #take an (over) sample but not too large to slow up lookup (quasi number generation is very fast in comparison)
-  samp <- randtoolbox::halton( max( njump, 5000), dim=dimension+1, init=FALSE)
+  if( randStartType==1){
+    #initialise Halton Sequence (random start)
+    samp <- randtoolbox::halton( sample( 1:10000, 1), dim=dimension+1, init=TRUE) #initialisation of the sequence, note random end point.
+    #take an (over) sample but not too large to slow up lookup (quasi number generation is very fast in comparison)
+    samp <- randtoolbox::halton( max( njump, 5000), dim=dimension+1, init=FALSE)
+  }
+  if( randStartType==2){  #As described in the BAS paper
+    samp <- randtoolbox::halton( max( 2*njump, 10000), dim=dimension+1, init=TRUE) #The sequence of quasi random numbers
+    skips <- sample( 1:max(njump, 5000), dimension+1, replace=TRUE) #the start points
+    samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(max( njump, 5000)-1),x]))  #a tedious way to paste it all together?
+  }
   myRange <- apply( study.area, -1, range)  
   for( ii in 1:dimension)
     samp[,ii] <- myRange[1,ii] + (myRange[2,ii]-myRange[1,ii]) * samp[,ii]
@@ -344,6 +349,8 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     tmp <- mgcv::in.out( study.area, samp[,1:dimension])
     samp <- samp[tmp,] #get rid of samples that are outside the study region
   }
+  
+  
   #container for the IDs of sampled sites
   sampIDs <- rep( NA, nrow( samp))  #for all potential sites
 
@@ -466,8 +473,11 @@ globalVariables( package="MBHdesign",
     ,"myRange"
     ,"inclusion.probs1"
     ,"mult"
-    ,"samp"
     ,"njump"
+    ,"randStartType"
+    ,"samp"
+    ,"skips"
+    ,"x"
     ,"sampIDs"
     ,"kount"
     ,"flag"
