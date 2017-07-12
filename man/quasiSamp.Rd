@@ -4,8 +4,8 @@
 \description{ Generates a spatially balanced design for given inclusion probabilities over a grid of potential sampling locations
 }
 \usage{
- quasiSamp( n, dimension=2, study.area=NULL, potential.sites=NULL,
-                              inclusion.probs=NULL, randStartType=2)
+ quasiSamp( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL,
+                                              randStartType=2, nSampsToConsider=10*n)
 }
 \arguments{
 \item{ n}{the number of samples to take}
@@ -14,6 +14,7 @@
 \item{ potential.sites}{a matrix (of size Nxdimension) of the spatial coordinates of the N sampling locations, of which n<<N are taken as the sample. If NULL (default) N=10000 samples are placed on a regular grid. If study.area is defined, then this grid is over the smallest bounding (hyper-)rectangle for the study.area. If study.area is NULL, the grid is over the unit (hyper-)square.}
 \item{ inclusion.probs}{a vector specifying the inclusion probability for each of the N potential sampling sites. This is the probability that each site will be included in the final sample. Locations are ordered the same as the potential.sites argument. If NULL (default) equal inclusion probabilities are specified.}
 \item{ randStartType}{the type of random start Halton sequence to use. The choices are 2 (default) as described in Robertson et al (2013), and 1 which is a mis-interpretation of that method (constrained so that the size of the skip in each dimension is equal). Note that randStartType=1 is used in Foster et al (2017).}
+\item{ nSampsToConsider}{the total number of samples to consider in the BAS step (rejection sampling). The default is 5000, which means that 5000 halton numbers are drawn and then thinned according to the inclusion probabilities. You may want to increase this number if your inclusion probabilities are extremely unbalanced or if the number of samples required is close to 5000. Reduce if you want the code to run quicker and are confident that a sample will be found using less.}
 }
 \details{ This function is an implementation of the balanced adaptive sampling (BAS) designs presented in Robertson et al. (2013), which forms the basis for the methods in Foster et al (in review). The BAS approach uses Halton sequences of quasi-random numbers, which are evenly spread over space, as the basis for generating spatially balanced designs. In this implementation, we requrie that the inclusion probabilities be given as points in space and the BAS design is the set of these points that lie closest to a continuous-space Halton sequence. Computational speed has been rudimentily optimised, but (of course) it could be done better -- like coding outside of R{}, for example.
 }
@@ -54,7 +55,7 @@ plot( samp[,1:2], main="n=250")
 #silly or sublime?
 n <- 1000
 #get the sample
-samp <- quasiSamp( n=n, dimension=2, potential.sites=X, inclusion.probs=p)
+samp <- quasiSamp( n=n, dimension=2, potential.sites=X, inclusion.probs=p, nSampsToConsider=5000)
 plot( samp[,1:2], main="n=1000")
 #I'm sure that you get the idea now.
 #tidy

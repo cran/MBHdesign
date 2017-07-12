@@ -271,7 +271,7 @@ function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL
 
 
 "quasiSamp" <-
-function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2) 
+function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2, nSampsToConsider=10*n) 
 {
   #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
   #Distances between x- and y-locations need not be equal -- but why would they not be?
@@ -325,7 +325,7 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     inclusion.probs <- rep( 1/N, N) #even probs
   }
   #standardise inclusion probabilities (for efficient sampling)
-  inclusion.probs1 <- inclusion.probs / max( inclusion.probs)
+  inclusion.probs1 <- inclusion.probs / max( inclusion.probs, na.rm=TRUE)
 
   #Generate lots of quasi random numbers
   mult <- 10 #mult times n to be taken in any chunk (quicker this way, I think)
@@ -335,12 +335,12 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     #initialise Halton Sequence (random start)
     samp <- randtoolbox::halton( sample( 1:10000, 1), dim=dimension+1, init=TRUE) #initialisation of the sequence, note random end point.
     #take an (over) sample but not too large to slow up lookup (quasi number generation is very fast in comparison)
-    samp <- randtoolbox::halton( max( njump, 5000), dim=dimension+1, init=FALSE)
+    samp <- randtoolbox::halton( max( njump, nSampsToConsider), dim=dimension+1, init=FALSE)
   }
   if( randStartType==2){  #As described in the BAS paper
-    samp <- randtoolbox::halton( max( 2*njump, 10000), dim=dimension+1, init=TRUE) #The sequence of quasi random numbers
-    skips <- sample( 1:max(njump, 5000), dimension+1, replace=TRUE) #the start points
-    samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(max( njump, 5000)-1),x]))  #a tedious way to paste it all together?
+    samp <- randtoolbox::halton( max( 2*njump, nSampsToConsider*2), dim=dimension+1, init=TRUE) #The sequence of quasi random numbers
+    skips <- sample( 1:max(njump, nSampsToConsider), dimension+1, replace=TRUE) #the start points
+    samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(max( njump, nSampsToConsider)-1),x]))  #a tedious way to paste it all together?
   }
   myRange <- apply( study.area, -1, range)  
   for( ii in 1:dimension)
@@ -349,8 +349,7 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     tmp <- mgcv::in.out( study.area, samp[,1:dimension])
     samp <- samp[tmp,] #get rid of samples that are outside the study region
   }
-  
-  
+    
   #container for the IDs of sampled sites
   sampIDs <- rep( NA, nrow( samp))  #for all potential sites
 
@@ -372,8 +371,9 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     kount <- kount + njump
   }  
   message("Finished\n")
-  if( kount > nrow( samp))
-    stop( "Failed to find a design. It is likely that the inclusion probabilities are very low and uneven. Please try again OR make inclusion probabilities more even")
+#  if( kount > nrow( samp))
+  if( length( sampIDs) < n)
+    stop( "Failed to find a design. It is likely that the inclusion probabilities are very low and uneven. Please try again OR make inclusion probabilities more even OR increase the number of sites considered.")
   samp <- as.data.frame( cbind( potential.sites[sampIDs,,drop=FALSE], inclusion.probs[sampIDs], sampIDs))
   colnames( samp) <- c( colnames( potential.sites), "inclusion.probabilities", "ID")
 
@@ -476,6 +476,7 @@ globalVariables( package="MBHdesign",
     ,"njump"
     ,"randStartType"
     ,"samp"
+    ,"nSampsToConsider"
     ,"skips"
     ,"x"
     ,"sampIDs"
