@@ -39,7 +39,7 @@
 %\usepackage{fullpage}
 \usepackage{natbib}
 \usepackage{url}
-\usepackage{nicefrac}
+%\usepackage{nicefrac}
 
 \renewcommand{\thefootnote}{\fnsymbol{footnote}}
 
@@ -90,7 +90,7 @@ colnames( X) <- colnames( legacySites) <- c("X1","X2")
 
 \section*{Inclusion Probabilities}
 
-Key to this whole design process is the concept of inclusion probabilities. Inclusion probabilities define the chance that any particular site will be part of the sample. So, if a site's inclusion probability is small, then the site is unlikely to be included into the sample. Specifying inclusion probabilities can improve efficiency of the sampling design. That is, standard errors can be reduced for a given number of samples. The `trick' is to specify inclusion probabilities so that the sites that should have highly variable observations are sampled more often \citep[e.g.][]{gra13}. In ecology, variance often increases with abundance \citep[due to Taylor's Power Law;][]{tay61}, so inclusion probabilities could be increased with abundance. If there is no knowledge about the area being sampled, then all sites should be given equal inclusion probabilities (equal to $\nicefrac{n}{N}$). The only formal requirement, in terms of \texttt{MBHdesign}, is that the inclusion probabilities must sum to $n$.
+Key to this whole design process is the concept of inclusion probabilities. Inclusion probabilities define the chance that any particular site will be part of the sample. So, if a site's inclusion probability is small, then the site is unlikely to be included into the sample. Specifying inclusion probabilities can improve efficiency of the sampling design. That is, standard errors can be reduced for a given number of samples. The `trick' is to specify inclusion probabilities so that the sites that should have highly variable observations are sampled more often \citep[e.g.][]{gra13}. In ecology, variance often increases with abundance \citep[due to Taylor's Power Law;][]{tay61}, so inclusion probabilities could be increased with abundance. If there is no knowledge about the area being sampled, then all sites should be given equal inclusion probabilities (equal to $\frac{n}{N}$). The only formal requirement, in terms of \texttt{MBHdesign}, is that the inclusion probabilities must sum to $n$.
 
 Here, we are going to pretend that there is some gradient in the variance of the population under study. We stress that this is illustrative only.
 <<inclProbs, dpi=300, out.width='60%'>>=

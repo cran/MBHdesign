@@ -59,7 +59,7 @@ p <- n * p / sum( p)
 #randomly choose legacy sites
 legacySites <- sample( 1:N, nLegacy, prob=p)
 #alter inclusion probabilities for legacy sites
-p2 <- alterInclProbs( X[legacySites,], X, p)
+p2 <- alterInclProbs( legacy.sites=X[legacySites,], potential.sites=X, inclusion.probs=p)
 #get the sample
 samp <- quasiSamp( n=n, dimension=2, potential.sites=X, inclusion.probs=p2)
 samp <- rbind( cbind( X[legacySites,], inclusion.probabilities=NA, ID=NA), samp)

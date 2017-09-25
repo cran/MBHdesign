@@ -5,7 +5,7 @@
 }
 \usage{
  quasiSamp( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL,
-                                              randStartType=2, nSampsToConsider=10*n)
+                                              randStartType=2, nSampsToConsider=5000)
 }
 \arguments{
 \item{ n}{the number of samples to take}

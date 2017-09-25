@@ -49,7 +49,7 @@ p <- n * p / sum( p)
 #randomly choose legacy sites
 legacySites <- sample( 1:N, nLegacy, prob=p)
 #alter inclusion probabilities
-p2 <- alterInclProbs( X[legacySites,], X, p)
+p2 <- alterInclProbs( legacy.sites=X[legacySites,], potential.sites=X, inclusion.probs=p)
 if( requireNamespace( "graphics", quietly = TRUE)) \{
   #plotting up old and new inclusion probabilities
   par( mfrow=c(1,2))

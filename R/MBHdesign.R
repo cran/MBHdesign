@@ -1,71 +1,60 @@
 # This is package MBHdesign 
 
 "alterInclProbs" <-
-function( legacy.sites, potential.sites=NULL, n=NULL, inclusion.probs=NULL, mc.cores=1, sigma=NULL){
-
-#  require( parallel)
-  if( is.null( n) & is.null( inclusion.probs))
-    stop( "One of the arguments n or inclusion.probs should be non-NULL")
-  if( !is.null( n) & !is.null( inclusion.probs))
-    warning( "Both n and inclusion.probs specified, using inclusion.probs")
-
-  dimen <- ncol( legacy.sites)
-  if( is.null( potential.sites)){
-    #use the unit square to sample in
-#    message( "Sampling from a 100 x 100 grid on the unit square (well, simplex really)")
-    N <- 100
-#    potential.sites <- as.matrix( expand.grid( as.data.frame( matrix( rep( 1:N, times=dimen), ncol=dimen)))/N - 1/(2*N)) #the minus is so that the pts are centres of cells
-#    colnames( potential.sites) <- paste0("dimension",1:dimen)
-    potential.sites <- getGridInHull( legacy.sites, N=N)
-    colnames( potential.sites) <- colnames( legacy.sites)
-  }
-  N <- nrow( potential.sites)
-  
-  if( ncol( legacy.sites) != ncol( potential.sites))
-    stop( "Dimension of legacy points does not match dimension of potential sites")
-
-  if( is.null( inclusion.probs)){
-    message( "No inclusion.probs supplied, assuming uniform")
-    inclusion.probs <- n*rep( 1/N, N) #even probs
- 	}
- 	
-  if( length( legacy.sites) == 0){
-    warning( "No legacy sites provided -- nothing to adjust for.  Returning inclusion probabilities.")
-    return( inclusion.probs)
-  }
- 	
-  distFun4 <- function( ii){
-    lpt <- legacy.sites[ii,]
-    disty <- sweep( potential.sites, 2, FUN='-', STATS=lpt)
-    disty <- disty^2
-    disty <- rowSums( disty)
-    disty <- sqrt( disty)
-    return( disty)
-  }
-
-  cl <- parallel::makeCluster( mc.cores)
-  parallel::clusterExport( cl, c("potential.sites", "legacy.sites", "distFun4"), envir=environment())
-  tmp <- parallel::parLapply( cl, 1:nrow( legacy.sites), distFun4)
-  parallel::stopCluster( cl)
-  tmp <- do.call( "cbind", tmp)
-
-  n <- sum( inclusion.probs)
-
-  if( is.null( sigma))
-    sigma <- find.sigma( n=n, nL=nrow( legacy.sites), potSites=potential.sites)
-  
-  legacyLocs <- apply( tmp, 2, which.min)
-  d <- exp( -(tmp^2)/(2*sigma*sigma))
-  adj.probs.ret <- inclusion.probs
-  for( jj in 1:ncol( tmp)){ #looping over legacy sites
-    adj <- (1-inclusion.probs[legacyLocs[jj]])
-    adj.probs.ret <- adj.probs.ret - adj * adj.probs.ret * d[,jj]
-  }
-  
-  tmp1 <- n * adj.probs.ret / sum( adj.probs.ret)
-
-  return( tmp1)
-  
+function (legacy.sites, potential.sites = NULL, n = NULL, inclusion.probs = NULL, 
+    mc.cores = 1, sigma = NULL) 
+{
+    if (is.null(n) & is.null(inclusion.probs)) 
+        stop("One of the arguments n or inclusion.probs should be non-NULL")
+    if (!is.null(n) & !is.null(inclusion.probs)) 
+        warning("Both n and inclusion.probs specified, using inclusion.probs")
+    dimen <- ncol(legacy.sites)
+    if (is.null(potential.sites)) {
+        N <- 100
+        potential.sites <- getGridInHull(legacy.sites, N = N)
+        colnames(potential.sites) <- colnames(legacy.sites)
+    }
+    N <- nrow(potential.sites)
+    if (ncol(legacy.sites) != ncol(potential.sites)) 
+        stop("Dimension of legacy points does not match dimension of potential sites")
+    if (is.null(inclusion.probs)) {
+        message("No inclusion.probs supplied, assuming uniform")
+        inclusion.probs <- n * rep(1/N, N)
+    }
+    if (length(legacy.sites) == 0) {
+        warning("No legacy sites provided -- nothing to adjust for.  Returning inclusion probabilities.")
+        return(inclusion.probs)
+    }
+    distFun4 <- function(ii) {
+        lpt <- legacy.sites[ii, ]
+        disty <- sweep(potential.sites, 2, FUN = "-", STATS = lpt)
+        disty <- disty^2
+        disty <- rowSums(disty, na.rm=TRUE)
+        disty <- sqrt(disty)
+        return(disty)
+    }
+    cl <- parallel::makeCluster(mc.cores)
+    parallel::clusterExport(cl, c("potential.sites", "legacy.sites", 
+        "distFun4"), envir = environment())
+    tmp <- parallel::parLapply(cl, 1:nrow(legacy.sites), distFun4)
+    parallel::stopCluster(cl)
+    tmp <- do.call("cbind", tmp)
+    if( !is.null( n))
+      inclusion.probs <- n * inclusion.probs / sum( inclusion.probs, na.rm=TRUE)
+    else
+      n <- sum(inclusion.probs, na.rm=TRUE)
+    if (is.null(sigma)) 
+        sigma <- find.sigma(n = n, nL = nrow(legacy.sites), potSites = potential.sites)
+    legacyLocs <- apply(tmp, 2, which.min)
+    d <- exp(-(tmp^2)/(2 * sigma * sigma))
+    adj.probs.ret <- inclusion.probs
+    for (jj in 1:ncol(tmp)) {
+        adj <- (1 - inclusion.probs[legacyLocs[jj]])
+        adj.probs.ret <- adj.probs.ret - adj * adj.probs.ret * 
+            d[, jj]
+    }
+    tmp1 <- n * adj.probs.ret/sum(adj.probs.ret, na.rm=TRUE)
+    return(tmp1)
 }
 
 
@@ -271,7 +260,7 @@ function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL
 
 
 "quasiSamp" <-
-function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2, nSampsToConsider=10*n) 
+function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) 
 {
   #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
   #Distances between x- and y-locations need not be equal -- but why would they not be?
@@ -328,20 +317,15 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
   inclusion.probs1 <- inclusion.probs / max( inclusion.probs, na.rm=TRUE)
 
   #Generate lots of quasi random numbers
-  mult <- 10 #mult times n to be taken in any chunk (quicker this way, I think)
-  njump <- n*mult #how many samples to consider at a time
-
-  if( randStartType==1){
-    #initialise Halton Sequence (random start)
-    samp <- randtoolbox::halton( sample( 1:10000, 1), dim=dimension+1, init=TRUE) #initialisation of the sequence, note random end point.
-    #take an (over) sample but not too large to slow up lookup (quasi number generation is very fast in comparison)
-    samp <- randtoolbox::halton( max( njump, nSampsToConsider), dim=dimension+1, init=FALSE)
-  }
-  if( randStartType==2){  #As described in the BAS paper
-    samp <- randtoolbox::halton( max( 2*njump, nSampsToConsider*2), dim=dimension+1, init=TRUE) #The sequence of quasi random numbers
-    skips <- sample( 1:max(njump, nSampsToConsider), dimension+1, replace=TRUE) #the start points
-    samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(max( njump, nSampsToConsider)-1),x]))  #a tedious way to paste it all together?
-  }
+  #initialise the sequence and subsample from it
+  samp <- randtoolbox::halton( nSampsToConsider*2, dim=dimension+1, init=TRUE) #The big sequence of quasi random numbers
+  if( randStartType==1)
+    skips <- rep( sample( 1:nSampsToConsider, size=1, replace=TRUE), dimension+1)
+  if( randStartType==2)
+    skips <- sample( 1:nSampsToConsider, size=dimension+1, replace=TRUE) #the start points
+  samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
+    
+  #convert to scale of study region
   myRange <- apply( study.area, -1, range)  
   for( ii in 1:dimension)
     samp[,ii] <- myRange[1,ii] + (myRange[2,ii]-myRange[1,ii]) * samp[,ii]
@@ -351,29 +335,14 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
   }
     
   #container for the IDs of sampled sites
-  sampIDs <- rep( NA, nrow( samp))  #for all potential sites
+  sampIDs <- class::knn1( potential.sites, samp[,1:dimension], 1:nrow( potential.sites))
+  sampIDs.2 <- which( samp[,dimension+1] < inclusion.probs1[sampIDs])
 
-  kount <- 0
-  flag <- TRUE
-  while( flag & ( kount < nrow( samp))){
-    if( kount == 0)
-      message( "Number of samples considered (number of samples found): ", njump,"(0) ", sep="")
-    else
-      message( kount + njump, "(",length( sampIDs.2),") ", sep="")
-    #the IDs in potential.sites and inclusion.probs1 matching to those in samp
-    sampIDs[ kount+1:min( njump, nrow( samp)-kount)] <- class::knn1( potential.sites, samp[kount+1:min( njump, nrow( samp)-kount),-(dimension+1),drop=FALSE], 1:nrow( potential.sites))
-    sampIDs.2 <- which( samp[1:(kount+min( njump, nrow( samp)-kount)),dimension+1] < inclusion.probs1[sampIDs[1:(kount+min( njump, nrow( samp)-kount))]])
+  if( length( sampIDs.2) >= n)
+    sampIDs <- sampIDs[sampIDs.2][1:n]
+  else
+    stop( "Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
 
-    if( length( sampIDs.2) >= n){
-      sampIDs <- sampIDs[sampIDs.2][1:n]
-      flag <- FALSE #just to break the while loop
-    }
-    kount <- kount + njump
-  }  
-  message("Finished\n")
-#  if( kount > nrow( samp))
-  if( length( sampIDs) < n)
-    stop( "Failed to find a design. It is likely that the inclusion probabilities are very low and uneven. Please try again OR make inclusion probabilities more even OR increase the number of sites considered.")
   samp <- as.data.frame( cbind( potential.sites[sampIDs,,drop=FALSE], inclusion.probs[sampIDs], sampIDs))
   colnames( samp) <- c( colnames( potential.sites), "inclusion.probabilities", "ID")
 
@@ -472,16 +441,12 @@ globalVariables( package="MBHdesign",
     ,"study.area"
     ,"myRange"
     ,"inclusion.probs1"
-    ,"mult"
-    ,"njump"
-    ,"randStartType"
     ,"samp"
     ,"nSampsToConsider"
+    ,"randStartType"
     ,"skips"
     ,"x"
     ,"sampIDs"
-    ,"kount"
-    ,"flag"
     ,"sampIDs.2"
 ))
 
