@@ -87,7 +87,7 @@ LegInclProbs <- rep( nrow( legacySites) / N, nrow( legacySites))
 #estimator based on legacy sites only
 legacyHT <- (1/N) * sum( Zlegacy / LegInclProbs)
 #estimator based on new sites only
-newHT <- (1/N) * sum( Z / samp$inclusion.probabilities)
+newHT <- (1/N) * sum( Z / inclProbs[samp$ID])
 mean.estimator <- fracLegacy * legacyHT + (1-fracLegacy) * newHT
 #print the mean
 print( mean.estimator)
@@ -97,7 +97,7 @@ print( mean.estimator)
 library( spsurvey)
 #rescale the inclusion probs 
 #   (the sample frames are the same in legacy and new sites)
-tmpInclProbs <- ( c( samp$inclusion.probabilities, LegInclProbs) / n) * 
+tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) * 
 						(n+nrow(legacySites))
 #calculate the standard error
 se.estimator <- total.est( z=c(Z, Zlegacy), 

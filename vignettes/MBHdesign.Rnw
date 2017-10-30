@@ -15,7 +15,7 @@
 \Shorttitle{MBHdesign} %% a short title (if necessary)
 
 \Abstract{
-  The MBHdesign package is useful for creating spatially balanced designs, especially when legacy sites are present. The package implements the methods described in \citet{fos16}, which is an extension of Balanced Adaptive Sampling \citep[BAS]{rob13}\footnotemark. In this tutorial, we will go through the three steps of:
+  The MBHdesign package is useful for creating spatially balanced designs, especially when legacy sites are present. The package implements the methods described in \citet{fos17a}, which is an extension of Balanced Adaptive Sampling \citep[BAS]{rob13}\footnotemark. In this tutorial, we will go through the three steps of:
   \begin{enumerate}
   	\item Altering inclusion probabilities for spatial balance, taking into account the location of legacy sites. This is done using the function \texttt{alterInclProbs};
   	\item Generating spatially balanced designs for a given set of inclusion probabilities, through the function \texttt{quasiSamp}; and
@@ -110,7 +110,7 @@ points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 
 \section*{Accommodating Legacy Sites}
 
-To generate a design that is spatially balanced \textit{in both the $n$ new sample sites and the legacy sites}, we adjust the inclusion probabilities. The adjustment \citep[see][]{fos16} reduces the inclusion probabilities so that sites near legacy sites are less likely to be chosen in the new sample.
+To generate a design that is spatially balanced \textit{in both the $n$ new sample sites and the legacy sites}, we adjust the inclusion probabilities. The adjustment \citep[see][]{fos17a} reduces the inclusion probabilities so that sites near legacy sites are less likely to be chosen in the new sample.
 <<alterInclProbs, dpi=300, out.width='60%'>>=
 #alter inclusion probabilities 
 #   so that new samples should be well-spaced from legacy
@@ -158,7 +158,7 @@ print( samp, row.names=FALSE)
 
 \section*{Analysis}
 
-After finalising the design, time comes to go and undertake the survey. For illustration, we do this \textit{in silico} and generate observations according to a pre-defined function \citep[following][amongst others]{fos16}.
+After finalising the design, time comes to go and undertake the survey. For illustration, we do this \textit{in silico} and generate observations according to a pre-defined function \citep[following][amongst others]{fos17a}.
 <<GetData>>=
 #generate some `observations' for the new sites
 Z <- 3*( X[samp$ID,1]+X[samp$ID,2]) + 
@@ -167,7 +167,7 @@ Z <- 3*( X[samp$ID,1]+X[samp$ID,2]) +
 Zlegacy <- 3*( legacySites[,1]+legacySites[,2]) + 
 			sin( 6*( legacySites[,1]+legacySites[,2]))
 @
-\noindent These data can be analysed in two ways: 1) design-based, which uses minimal assumptions about the data; and 2) model-based, which attempts to describe more aspects of the data. See \citet{fos16} for a more complete description. For design-based analysis we take a weighted average of the estimator for the legacy sites and the estimator for the new sites. In both cases the estimates follow \citet{hor52}. Please do read the section in \citet{fos16} for comments on estimation, it could save you some grief.
+\noindent These data can be analysed in two ways: 1) design-based, which uses minimal assumptions about the data; and 2) model-based, which attempts to describe more aspects of the data. See \citet{fos17a} for a more complete description. For design-based analysis we take a weighted average of the estimator for the legacy sites and the estimator for the new sites. In both cases the estimates follow \citet{hor52}. Please do read the section in \citet{fos17a} for comments on estimation, it could save you some grief.
 <<HTestimate>>=
 #the proportion of legacy sites in the whole sample
 fracLegacy <- nrow( legacySites) / (n+nrow( legacySites))
@@ -177,7 +177,7 @@ LegInclProbs <- rep( nrow( legacySites) / N, nrow( legacySites))
 #estimator based on legacy sites only
 legacyHT <- (1/N) * sum( Zlegacy / LegInclProbs)
 #estimator based on new sites only
-newHT <- (1/N) * sum( Z / samp$inclusion.probabilities)
+newHT <- (1/N) * sum( Z / inclProbs[samp$ID])
 mean.estimator <- fracLegacy * legacyHT + (1-fracLegacy) * newHT
 #print the mean
 print( mean.estimator)
@@ -188,7 +188,7 @@ print( mean.estimator)
 library( spsurvey)
 #rescale the inclusion probs 
 #   (the sample frames are the same in legacy and new sites)
-tmpInclProbs <- ( c( samp$inclusion.probabilities, LegInclProbs) / n) * 
+tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) * 
 						(n+nrow(legacySites))
 #calculate the standard error
 se.estimator <- total.est( z=c(Z, Zlegacy), 
@@ -199,7 +199,7 @@ se.estimator <- total.est( z=c(Z, Zlegacy),
 print( se.estimator)
 @
 
-For model-based mean and standard errors we follow the `GAMdist' approach in \citet{fos16}.
+For model-based mean and standard errors we follow the `GAMdist' approach in \citet{fos17a}.
 <<ModEstimate>>=
 tmp <- modEsti( y=c( Z, Zlegacy), locations=rbind( X[samp$ID,], legacySites),
 	includeLegacyLocation=TRUE, legacyIDs=n + 1:nrow( legacySites),

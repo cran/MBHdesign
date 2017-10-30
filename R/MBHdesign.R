@@ -7,7 +7,7 @@ function (legacy.sites, potential.sites = NULL, n = NULL, inclusion.probs = NULL
     if (is.null(n) & is.null(inclusion.probs)) 
         stop("One of the arguments n or inclusion.probs should be non-NULL")
     if (!is.null(n) & !is.null(inclusion.probs)) 
-        warning("Both n and inclusion.probs specified, using inclusion.probs")
+        warning("\n\tBoth n and inclusion.probs specified!\n\tUsing inclusion.probs but scaling them to sum to n")
     dimen <- ncol(legacy.sites)
     if (is.null(potential.sites)) {
         N <- 100
