@@ -1,9 +1,7 @@
 # This is package MBHdesign 
 
-"alterInclProbs" <-
-function (legacy.sites, potential.sites = NULL, n = NULL, inclusion.probs = NULL, 
-    mc.cores = 1, sigma = NULL) 
-{
+"alterInclProbs" <- function (legacy.sites, potential.sites = NULL, n = NULL, inclusion.probs = NULL, 
+    mc.cores = 1, sigma = NULL) {
     if (is.null(n) & is.null(inclusion.probs)) 
         stop("One of the arguments n or inclusion.probs should be non-NULL")
     if (!is.null(n) & !is.null(inclusion.probs)) 
@@ -57,59 +55,53 @@ function (legacy.sites, potential.sites = NULL, n = NULL, inclusion.probs = NULL
     return(tmp1)
 }
 
-
-"calcExactInclusionProbs2" <-
-function( potential.sites, sampled.sites, legacy.sites=NULL, inclusion.probs=NULL, times=1e7, mc.cores=4) 
-{
-  #inclusion probs should be unaltered probs?
-  n <- nrow( sampled.sites)
-  N <- nrow( potential.sites)
-  dimension <- ncol( potential.sites)
-  if( ncol( sampled.sites) != dimension)
-    stop( "The dimensions of the potential sites and the sampled sites are different! Please check. Only pass those columns of each matrix that are coordinates")
-  if( is.null( inclusion.probs)){
-    message( "No inclusion.probs supplied, assuming uniform")
-    inclusion.probs <- n*rep( 1/N, N) #even probs
-  }
-  if( n != sum( inlcusion.probs)){
-    message( "Sum of inclusion probabilities not equal to the number of sampled.sites. Rescaling inclusion probabilities")
-    inclusion.probs <- inclusion.probs * n / sum( inclusion.probs)
-  }  
-  if( is.null( legacy.sites)){
-    message( "No legacy sites supplied")
-    all.sampled.sites <- sampled.sites
-  }
-  else{
-    all.sampled.sites <- cbind( sampled.sites, legacy.sites)
-    L <- nrow( legacy.sites)
-  }
-  #Whittle down the potential.sites to include only the all.sampled.sites and their immediate M neighbours
-  M <- 100
-  
-  
-
-
-  funny <- function(x){
-    tmp <- quasiSamp1( n=n, dimension=dimension, potential.sites=potential.sites, inclusion.probs=inclusion.probs, return.potential.sites=FALSE)
-    return( tmp$ID)
-  }
-  cl <- parallel::makeCluster( mc.cores)
-  tmppy <- .libPaths()
-  parallel::clusterExport( cl, c( "dimension", "potential.sites", "inclusion.probs", "funny", "quasiSamp1", "tmppy"), envir=environment())
-  parallel::clusterEvalQ( cl, {.libPaths( tmppy); library( randtoolbox); library( class)})
-  tmp <- parallel::parLapply( cl, 1:times, funny)
-  parallel::stopCluster( cl)
-
-  tmp <- factor( unlist( tmp), levels=1:nrow( potential.sites))
-  tmp <- table( tmp) / times
-  
-  return( tmp)
+{#"calcExactInclusionProbs2" <- function( potential.sites, sampled.sites, legacy.sites=NULL, 
+#                                        inclusion.probs=NULL, times=1e7, mc.cores=4) {
+#  #inclusion probs should be unaltered probs?
+#  n <- nrow( sampled.sites)
+#  N <- nrow( potential.sites)
+#  dimension <- ncol( potential.sites)
+#  if( ncol( sampled.sites) != dimension)
+#    stop( "The dimensions of the potential sites and the sampled sites are different! Please check. Only pass those columns of each matrix that are coordinates")
+#  if( is.null( inclusion.probs)){
+#    message( "No inclusion.probs supplied, assuming uniform")
+#    inclusion.probs <- n*rep( 1/N, N) #even probs
+#  }
+#  if( n != sum( inclusion.probs)){
+#    message( "Sum of inclusion probabilities not equal to the number of sampled.sites. Rescaling inclusion probabilities")
+#    inclusion.probs <- inclusion.probs * n / sum( inclusion.probs)
+#  }  
+#  if( is.null( legacy.sites)){
+#    message( "No legacy sites supplied")
+#    all.sampled.sites <- sampled.sites
+#  }
+#  else{
+#    all.sampled.sites <- cbind( sampled.sites, legacy.sites)
+#    L <- nrow( legacy.sites)
+#  }
+#  #Whittle down the potential.sites to include only the all.sampled.sites and their immediate M neighbours
+#  M <- 100
+#  
+#  funny <- function(x){
+#    #this used to be qasuiSamp1()  !?!?!
+#    tmp <- quasiSamp1( n=n, dimension=dimension, potential.sites=potential.sites, inclusion.probs=inclusion.probs, return.potential.sites=FALSE)
+#    return( tmp$ID)
+#  }
+#  cl <- parallel::makeCluster( mc.cores)
+#  tmppy <- .libPaths()
+#  parallel::clusterExport( cl, c( "dimension", "potential.sites", "inclusion.probs", "funny", "quasiSamp", "tmppy"), envir=environment())
+#  parallel::clusterEvalQ( cl, {.libPaths( tmppy); library( randtoolbox); library( class)})
+#  tmp <- parallel::parLapply( cl, 1:times, funny)
+#  parallel::stopCluster( cl)
+#
+#  tmp <- factor( unlist( tmp), levels=1:nrow( potential.sites))
+#  tmp <- table( tmp) / times
+#  
+#  return( tmp)
+#}
 }
 
-
-"find.sigma" <-
-function( n, nL, potSites) 
-{
+"find.sigma" <- function( n, nL, potSites) {
   dim <- ncol( potSites)
   hully <- geometry::convhulln( potSites, options="FA")
   A <- hully$vol
@@ -125,10 +117,7 @@ function( n, nL, potSites)
   return( sigma)
 }
 
-
-"getControl" <-
-function( contr) 
-{
+"getControl" <- function( contr) {
   if( !"k" %in% names( contr))
     contr$k <- 3
   if( !"N" %in% names( contr))
@@ -141,10 +130,7 @@ function( contr)
   return( contr)
 }
 
-
-"getGAMpred" <-
-function( fm, predPts, B=1e3, seMethod="parameter", control=NULL) 
-{
+"getGAMpred" <- function( fm, predPts, B=1e3, seMethod="parameter", control=NULL) {
 	Xp <- mgcv::predict.gam( fm, newdata=as.data.frame( predPts), type='lpmatrix')
 	if( seMethod=="parameter")
   	betas <- mvtnorm::rmvnorm( n=B, mean=coef( fm), sigma=fm$Vp)
@@ -167,10 +153,7 @@ function( fm, predPts, B=1e3, seMethod="parameter", control=NULL)
   return( ret)
 }
 
-
-"getGridInHull" <-
-function( locations, N=100) 
-{
+"getGridInHull" <- function( locations, N=100) {
   hully <- geometry::convhulln( locations)
 	predPts <- data.frame( tmp=rep( NA, N))
 	for( ii in 1:ncol( locations))
@@ -195,10 +178,8 @@ function( locations, N=100)
   return( predPts)
 }
 
-
-"modEsti" <-
-function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL, family=gaussian(), offset=rep(0,length(y)), control=list()) 
-{
+"modEsti" <- function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL, 
+                       family=gaussian(), offset=rep(0,length(y)), control=list()) {
   control <- getControl( control)
   locations <- as.matrix( locations)
 	if( is.null( predPts)){ #if not provided then make up a grid
@@ -258,13 +239,7 @@ function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL
   return( ret)
 }
 
-
-"quasiSamp" <-
-function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) 
-{
-  #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
-  #Distances between x- and y-locations need not be equal -- but why would they not be?
-
+"setDesignParams" <- function( dimension, study.area, potential.sites, inclusion.probs) {
   if( is.null( study.area)){
     if( is.null( potential.sites)){
       message( "No study.area defined and no potential.sites given. Using unit interval/square/cube/hyper-cube (as dimension dictates)")
@@ -315,7 +290,18 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
   }
   #standardise inclusion probabilities (for efficient sampling)
   inclusion.probs1 <- inclusion.probs / max( inclusion.probs, na.rm=TRUE)
+  
+  ret <- list( dimension=dimension, study.area=study.area, potential.sites=potential.sites, inclusion.probs=inclusion.probs, inclusion.probs1=inclusion.probs1, N=N)
+  return( ret)
+}
 
+"quasiSamp" <- function( n, dimension=2, study.area=NULL, potential.sites=NULL, 
+                         inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) {
+  #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
+  #Distances between x- and y-locations need not be equal -- but why would they not be?
+
+  designParams <- setDesignParams( dimension, study.area, potential.sites, inclusion.probs)
+  
   #Generate lots of quasi random numbers
   #initialise the sequence and subsample from it
   samp <- randtoolbox::halton( nSampsToConsider*2, dim=dimension+1, init=TRUE) #The big sequence of quasi random numbers
@@ -323,130 +309,29 @@ function( n, dimension=2, study.area=NULL, potential.sites=NULL, inclusion.probs
     skips <- rep( sample( 1:nSampsToConsider, size=1, replace=TRUE), dimension+1)
   if( randStartType==2)
     skips <- sample( 1:nSampsToConsider, size=dimension+1, replace=TRUE) #the start points
-  samp <- do.call( "cbind", lapply( 1:(dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
+  samp <- do.call( "cbind", lapply( 1:(designParams$dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
     
   #convert to scale of study region
-  myRange <- apply( study.area, -1, range)  
-  for( ii in 1:dimension)
+  myRange <- apply( designParams$study.area, -1, range)  
+  for( ii in 1:designParams$dimension)
     samp[,ii] <- myRange[1,ii] + (myRange[2,ii]-myRange[1,ii]) * samp[,ii]
-  if( dimension==2){
-    tmp <- mgcv::in.out( study.area, samp[,1:dimension])
+  if( designParams$dimension==2){
+    tmp <- mgcv::in.out( designParams$study.area, samp[,1:designParams$dimension])
     samp <- samp[tmp,] #get rid of samples that are outside the study region
   }
     
   #container for the IDs of sampled sites
-  sampIDs <- class::knn1( potential.sites, samp[,1:dimension], 1:nrow( potential.sites))
-  sampIDs.2 <- which( samp[,dimension+1] < inclusion.probs1[sampIDs])
+  sampIDs <- class::knn1( designParams$potential.sites, samp[,1:designParams$dimension,drop=FALSE], 1:nrow( designParams$potential.sites))
+  sampIDs.2 <- which( samp[,designParams$dimension+1] < designParams$inclusion.probs1[sampIDs])
 
   if( length( sampIDs.2) >= n)
     sampIDs <- sampIDs[sampIDs.2][1:n]
   else
     stop( "Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
 
-  samp <- as.data.frame( cbind( potential.sites[sampIDs,,drop=FALSE], inclusion.probs[sampIDs], sampIDs))
-  colnames( samp) <- c( colnames( potential.sites), "inclusion.probabilities", "ID")
+  samp <- as.data.frame( cbind( designParams$potential.sites[sampIDs,,drop=FALSE], designParams$inclusion.probs[sampIDs], sampIDs))
+  colnames( samp) <- c( colnames( designParams$potential.sites), "inclusion.probabilities", "ID")
 
   return( samp)
 }
-
-# MVB's workaround for futile CRAN 'no visible blah' check:
-globalVariables( package="MBHdesign",
-  names=c( ".Traceback"
-    ,"n"
-    ,"inclusion.probs"
-    ,"dimen"
-    ,"legacy.sites"
-    ,"potential.sites"
-    ,"N"
-    ,"distFun4"
-    ,"lpt"
-    ,"ii"
-    ,"disty"
-    ,"cl"
-    ,"parallel"
-    ,"makeCluster"
-    ,"mc.cores"
-    ,"clusterExport"
-    ,"tmp"
-    ,"parLapply"
-    ,"stopCluster"
-    ,"legacyLocs"
-    ,"d"
-    ,"adj.probs.ret"
-    ,"jj"
-    ,"adj"
-    ,"tmp1"
-    ,"sampled.sites"
-    ,"dimension"
-    ,"inlcusion.probs"
-    ,"all.sampled.sites"
-    ,"L"
-    ,"M"
-    ,"funny"
-    ,"quasiSamp1"
-    ,"ID"
-    ,"tmppy"
-    ,"clusterEvalQ"
-    ,"randtoolbox"
-    ,"times"
-    ,"potSites"
-    ,"hully"
-    ,"geometry"
-    ,"A"
-    ,"vol"
-    ,"A.dashed"
-    ,"nL"
-    ,"r"
-    ,"alpha"
-    ,"fun"
-    ,"stats"
-    ,"sig"
-    ,"root"
-    ,"contr"
-    ,"k"
-    ,"B"
-    ,"Xp"
-    ,"mgcv"
-    ,"fm"
-    ,"predPts"
-    ,"seMethod"
-    ,"betas"
-    ,"mvtnorm"
-    ,"Vp"
-    ,"control"
-    ,"wts"
-    ,"y"
-    ,"fm1"
-    ,"etas"
-    ,"preds"
-    ,"linkinv"
-    ,"ret"
-    ,"locations"
-    ,"phull2"
-    ,"nrp"
-    ,"nrx"
-    ,"outside"
-    ,"done"
-    ,"phull3"
-    ,"also.outside"
-    ,"formPart1"
-    ,"formPart2"
-    ,"my.form"
-    ,"includeLegacyLocation"
-    ,"legacyIDs"
-    ,"formPart3"
-    ,"combinedDistToLegacy"
-    ,"mod.dat"
-    ,"updatedPredPts"
-    ,"study.area"
-    ,"myRange"
-    ,"inclusion.probs1"
-    ,"samp"
-    ,"nSampsToConsider"
-    ,"randStartType"
-    ,"skips"
-    ,"x"
-    ,"sampIDs"
-    ,"sampIDs.2"
-))
 

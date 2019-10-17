@@ -25,10 +25,8 @@
 \references{
  Bondesson, L. and Thoburn, D. (2008) A List Sequential Sampling Method Suitable for Real-Time Sampling. Scandinavian Journal of Statistics \emph{35}:466--483.
 
-\describe{
-\item{Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R{}., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{NA}}{NA--NA DOI: 10.1111/2041-210X.12782}
-}
-
+ Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{8}:1433--1442.
+ 
  Grafstrom, A. (2012) Spatially correlated Poisson sampling. Journal of Statistical Plannind and Inference \emph{142}:139--147.
 }
 \examples{

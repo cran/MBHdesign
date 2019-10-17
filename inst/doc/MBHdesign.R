@@ -56,7 +56,7 @@ points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 ## ----GetDesign, dpi=300, out.width='60%'---------------------------------
 #generate the design according to the altered inclusion probabilities.
 samp <- quasiSamp( n=n, dimension=2, 
-	study.area=matrix( c(0,0, 0,1, 1,0, 1,1),ncol=2,  byrow=TRUE), 
+	study.area=matrix( c(0,0, 0,1, 1,1, 1,0),ncol=2,  byrow=TRUE), 
 	potential.sites=X, inclusion.probs=altInclProbs)
 #visualise
 image( x=unique( X[,1]), y=unique( X[,2]), 
@@ -115,7 +115,124 @@ print( tmp)
 
 ## ----Tidy----------------------------------------------------------------
 #write csv
-write.csv( samp, file="sample1.csv", row.names=FALSE)
+write.csv( samp, file="pointSample1.csv", row.names=FALSE)
+#tidy
+rm( list=ls())
+
+## ----transSetup----------------------------------------------------------
+
+set.seed( 747)  #I'm currently on a 787, so it *almost* seems appropriate
+#number of transects
+n <- 10
+#number of points to sample from
+N <- 100^2
+#the sampling grid (offset so that the edge locations have same area)
+offsetX <- 1/(2*sqrt( N))
+my.seq <- seq( from=offsetX, to=1-offsetX, length=sqrt(N))
+X <- expand.grid( my.seq, my.seq)
+colnames( X) <- c("X1","X2")
+
+## ----transIinclProbs, dpi=300, out.width='60%'---------------------------
+#non-uniform inclusion probabilities
+inclProbs <- 1-exp(-X[,1])
+#scaling to enforce summation to n
+inclProbs <- n * inclProbs / sum( inclProbs)
+#uniform inclusion probabilities would be inclProbs <- rep( n/N, times=N)
+#visualise
+image( x=unique( X[,1]), y=unique( X[,2]), 
+    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
+    main="(Undadjusted) Inclusion Probabilities", 
+    ylab=colnames( X)[2], xlab=colnames( X)[1])
+
+## ----transSetControl-----------------------------------------------------
+#my.control is a list that contains
+my.control <- list( 
+  #the type of transect
+  transect.pattern="line",
+  #the length of transect
+  line.length=0.15,
+  #the number of points that define the transect
+  transect.nPts=15,
+  #the number of putative directions that a transect can take
+  nRotate=9
+)
+
+## ----callTransectSamp----------------------------------------------------
+#take the transect sample
+samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs, 
+		    control=my.control)
+image( x=unique( X[,1]), y=unique( X[,2]), 
+    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
+    main="(Undadjusted) Inclusion Probabilities", 
+    sub="10 Transects",
+    ylab=colnames( X)[2], xlab=colnames( X)[1])
+points( samp$points[,5:6], pch=20, cex=0.6)
+
+## ----transTidy-----------------------------------------------------------
+#write csv
+write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
+#tidy
+rm( list=ls())
+
+## ----volSetup, fig.width=9.43--------------------------------------------
+library( MASS)  #for the data
+library( fields)  #for image.plot
+library( MBHdesign) #for the spatial design and constraints
+set.seed( 717)  #Last plan I was on
+#number of transects
+n <- 20
+#load the altitude data
+data( volcano)  #this is a matrix
+n.x <- nrow( volcano)
+n.y <- ncol( volcano)
+image.plot( x=1:n.x, y=1:n.y, z=volcano, main="Mountain Height (m)", asp=1)
+#format for MBHdesign functions
+pot.sites <- expand.grid( x=1:n.x, y=1:n.y)
+pot.sites$height <- as.vector( volcano)
+#details of the transects (see Details section in ?transectSamp)
+vol.control <- list( transect.pattern="line", transect.nPts=10,
+                     line.length=7, nRotate=11, mc.cores=1)
+#In a real application, transect.nPts and nRotate may need to be increased
+#1 cores have been used to ensure generality for all computers. Use more to speed things up
+
+## ----volConstraint, fig.width=9.43---------------------------------------
+vol.constraints <- findDescendingTrans( 
+  potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height, 
+  in.area=rep( TRUE, nrow( pot.sites)), control=vol.control)
+#this is a matrix with nrow given by the number of sites and ncol by 
+#   the number of rotations around each site
+print( dim( vol.constraints))
+#The contents describe how the transect lays over the landscape
+#So, there are 15592 putative transects that ascend and descend
+#   (and can't be used in the sample)
+table( as.vector( vol.constraints))
+#convert to TRUE/FALSE 
+#Note that the final possible transect type ('descendAndNA') is 
+#   not present in these data
+#If present, we would have to decide to sample these or not
+vol.constraints.bool <- matrix( FALSE, nrow=nrow( vol.constraints), 
+                                ncol=ncol( vol.constraints))
+vol.constraints.bool[vol.constraints %in% c("descend")] <- TRUE
+#Let's get a visual to see what has just been done.
+tmpMat <- matrix( apply( vol.constraints.bool, 1, sum), nrow=n.x, ncol=n.y)
+image.plot( x=1:n.x, y=1:n.y, z=tmpMat, 
+            main="Number of Transects", 
+            sub="Transects centered at cell (max 11)", asp=1)
+#There aren't any transects that are centred on ridges or depressions.
+
+## ----volSample, fig.width=9.43-------------------------------------------
+#take the sample
+volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")], 
+                         control=vol.control, 
+                         constrainedSet=vol.constraints.bool)
+#visualise the sample
+image.plot( x=1:n.x, y=1:n.y, z=volcano, 
+            main="Uniform Probability Transect Sample", asp=1)
+points( volSamp$points[,c("x","y")], pch=20)
+
+## ----volTidy-------------------------------------------------------------
+#write csv
+write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
 #tidy
 rm( list=ls())
 

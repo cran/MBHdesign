@@ -35,9 +35,7 @@ The control list contains elements with names:
 }
 \author{Scott D. Foster}
 \references{
-\describe{
-\item{Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R{}., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{NA}}{NA--NA DOI: 10.1111/2041-210X.12782}
-}
+ Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{8}:1433--1442.
 }
 \examples{
 #set up design parameters
@@ -45,7 +43,7 @@ The control list contains elements with names:
 #big plane today
 set.seed(747)
 #the number of potential sampling locations
-N <- 100^2
+N <- 50^2
 #number of samples
 n <- 27
 #number of legacy sites
@@ -67,8 +65,8 @@ samp <- rbind( cbind( X[legacySites,], inclusion.probabilities=NA, ID=NA), samp)
 samp$outcomes <- rnorm( nrow( samp))
 #get the estimate
 esti <- modEsti( y=samp$outcomes, locations=samp[,1:2], includeLegacyLocation=TRUE,
-  legacyIDs=1:3, predPts=NULL, family=gaussian(), control=list(mc.cores=2, B=100))
-#in real applications the number of bootstrap samples (B) should be larger
+  legacyIDs=1:3, predPts=NULL, family=gaussian(), control=list(mc.cores=1, B=100))
+#in real applications the number of bootstrap samples (B), and mc.cores, should be larger
 print( esti)
 #tidy
 rm( esti, legacySites, n, N, nLegacy, p, p2, samp, X)

@@ -10,7 +10,7 @@
 \arguments{
 \item{ n}{the number of samples to take}
 \item{ dimension}{the number of dimensions that the samples are located in. Equal to 2 for areal sampling. Care should be taken with large dimensions as:1) the number of potential sampling sites needed for effective coverage starts to explode (curse of dimensionality); and 2) the well-spaced behaviour of the Halton sequence starts to deteriorate (but this requires very very many dimensions to be problematic -- included as a warning here for largely academic reasons).}
-\item{ study.area}{a numeric matrix with dimension columns. This defines the sampling area from where the sites are selected (each row defines a vertex of the sampling area). If NULL (default), the study.area is defined to be the smallest (hyper-)rectangle that bounds the potential.sites. If potential.sites is also NULL (default), then the study area is taken to be the unit (hyper-)square. This argument is closely related to potential.sites.}
+\item{ study.area}{a numeric matrix with dimension columns. This defines the sampling area from where the sites are selected -- each row defines a vertex of the sampling area and the order of rows is such that the vertices are joined in order. The last vertex is joined to the first. If NULL (default), the study.area is defined to be the smallest (hyper-)rectangle that bounds the potential.sites. If potential.sites is also NULL (default), then the study area is taken to be the unit (hyper-)square. This argument is closely related to potential.sites.}
 \item{ potential.sites}{a matrix (of size Nxdimension) of the spatial coordinates of the N sampling locations, of which n<<N are taken as the sample. If NULL (default) N=10000 samples are placed on a regular grid. If study.area is defined, then this grid is over the smallest bounding (hyper-)rectangle for the study.area. If study.area is NULL, the grid is over the unit (hyper-)square.}
 \item{ inclusion.probs}{a vector specifying the inclusion probability for each of the N potential sampling sites. This is the probability that each site will be included in the final sample. Locations are ordered the same as the potential.sites argument. If NULL (default) equal inclusion probabilities are specified.}
 \item{ randStartType}{the type of random start Halton sequence to use. The choices are 2 (default) as described in Robertson et al (2013), and 1 which is a mis-interpretation of that method (constrained so that the size of the skip in each dimension is equal). Note that randStartType=1 is used in Foster et al (2017).}
@@ -24,13 +24,14 @@
 }
 \author{Scott D. Foster}
 \references{
-\describe{
-\item{Robertson, B. L., Brown, J. A., McDonald, T. and Jaksons, P. (2013) BAS}{Balanced Acceptance Sampling of Natural Resources. Biometrics \emph{69}: 776--784 DOI: 10.1111/biom.12059}
-\item{Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R{}., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{NA}}{NA--NA DOI: 10.1111/2041-210X.12782}
-}
+ Robertson, B. L., Brown, J. A., McDonald, T. and Jaksons, P. (2013) BAS: Balanced Acceptance Sampling of Natural Resources. Biometrics \emph{69}: 776--784.
+ 
+ Foster, S.D., Hosack, G.R., Lawrence, E., Przeslawski, R., Hedge,P., Caley, M.J., Barrett, N.S., Williams, A., Li, J., Lynch, T., Dambacher, J.M., Sweatman, H.P.A, and Hayes, K.R. (2017) Spatially-Balanced Designs that Incorporate Legacy Sites. Methods in Ecology and Evolution \emph{8}:1433--1442.
 }
 \examples{
 #generate samples on a 100 x 100 grid
+#Note that, although the random number is set, there may be differences between versions of R. 
+#In particular, post R/3.6 might be different to R/3.5 and before
 #jet plane
 set.seed(707)
 #the number of potential sampling locations

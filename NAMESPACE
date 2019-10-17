@@ -1,6 +1,9 @@
 export( "alterInclProbs",
 "modEsti",
-"quasiSamp")
+"quasiSamp",
+"transectSamp",
+"findDescendingTrans",
+"findTransFromPoint")
 import( mgcv)
 import( geometry)
 import( randtoolbox)
