@@ -163,7 +163,8 @@
     }
     else{
       message( "No study.area defined. Using a rectangle based on the extreme locations in potential.sites")
-      if( !class( potential.sites) %in% c("matrix"))
+      #if( !class( potential.sites) %in% c("matrix", "array"))
+      if( !("matrix" %in% class( potential.sites)))
         potential.sites <- as.matrix( potential.sites)
       if( ncol( potential.sites) != 2)
         stop( "The argument potential.sites contains more than 2 dimensions. For transect designs, this is not supported. Please revise.")
@@ -205,7 +206,8 @@
     potential.sites.list <- list( sort( unique( potential.sites[,1])), sort( unique( potential.sites[,2])), seq( from=0, to=360-360/N$rotate, length=N$rotate))
   names( potential.sites.list) <- c( colnames( potential.sites), "direction")
   averageCellDist <- c( mean( diff( potential.sites.list[[1]])), mean( diff( potential.sites.list[[2]])))
-  if( !class( study.area) %in% c("matrix","data.frame"))
+  #if( !class( study.area) %in% c("matrix","data.frame"))
+  if( !( "matrix" %in% class( study.area)))
     study.area <- as.matrix( study.area)
   if( is.null( colnames( study.area)))
     colnames( study.area) <- paste0( "dimension",1:dimension)

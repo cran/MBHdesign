@@ -250,7 +250,8 @@
     }
     else{
       message( "No study.area defined. Using an interval/rectangle/hyper-rectangle based on the extreme locations in potential.sites")
-      if( !class( potential.sites) %in% c("matrix","data.frame"))
+      #if( !class( potential.sites) %in% c("matrix","data.frame"))
+      if( !( "matrix" %in% class( potential.sites) | "data.frame" %in% class( potential.sites)))
         potential.sites <- as.matrix( potential.sites)
       if( is.null( colnames( potential.sites)))
         colnames( potential.sites) <- paste0( "dimension",1:dimension)
@@ -260,7 +261,8 @@
     if( dimension==2)
       study.area <- study.area[c(1,3,4,2),] #just so, in this case, it forms a polygon (for checking in boundness)
   }
-  if( !class( study.area) %in% c("matrix","data.frame"))
+  #if( !class( study.area) %in% c("matrix","data.frame"))
+  if( !( "matrix" %in% class( potential.sites) | "data.frame" %in% class( potential.sites)))
     study.area <- as.matrix( study.area)
   if( is.null( colnames( study.area)))
     colnames( study.area) <- paste0( "dimension",1:dimension)
