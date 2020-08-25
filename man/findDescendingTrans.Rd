@@ -17,14 +17,14 @@
 }
 \details{The function findDescendingTrans aims to provide a set of transects, which all can be performed down slope. The function findTransFromPoint aims to provide a set of transects, which all start from a particular point (or set of points). The output of these functions is formatted so that it can be directly used as an argument to \code{\link{transectSamp}}. In this case, and when supplied to \code{\link{transectSamp}}, a set of descending or radially stemming, spatially-balanced transects are generated.
 
-These function implements a type of constraint on the randomisation process.  Discussed in Foster et al (2017).}
+This function implements a type of constraint on the randomisation process.  Discussed in Foster et al (2020).}
 
-\value{The findDescendingTrans function returns a matrix giving a character matrix of size N x nRotate that specifies which transects are 'descend'ing (with N centre locations and nRotate different orientations), which transects are 'upAndDown' slope, which contains only NAs (where bathymetry data is not available), and which are descending over the available bathymetry data ('descendAndNA').
+\value{The findDescendingTrans function returns a matrix giving a character matrix of size N x nRotate that specifies which transects are 'descend'ing (with N centre locations and nRotate different orientations), which transects are 'upAndDown' slope, which contains only NAs (where bathymetry data is not available), which are descending over the available bathymetry data ('descendAndNA'), which are up and down over the available data ('upAndDownAndNA_NaN').
 
 The findTransFromPoint function similarly returns a character matrix containing the strings "startsFromPoint" meaning that the transect starts form one of the specified points, and "badStart" meaning that the transect does not start from one of the specified points. The developer realises that "badStart" is not an extremely informative string -- it must have seemed like a good idea late one night.}
   
 \seealso{\code{\link{transectSamp}}}
 \author{Scott D. Foster}
 \references{
-   Foster, S.D., Hosack, G.R., J. Monk, Lawrence, E., Barrett, N.S., Williams, A. and Przeslawski, P. (accepted) Spatially-Balanced Designs for Transect-Based Surveys. Methods in Ecology and Evolution.
+   Foster, S.D., Hosack, G.R., J. Monk, Lawrence, E., Barrett, N.S., Williams, A. and Przeslawski, P. (2020) Spatially-Balanced Designs for Transect-Based Surveys. Methods in Ecology and Evolution. emph{11}: 95--105
 }

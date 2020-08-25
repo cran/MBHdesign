@@ -297,35 +297,64 @@
   return( ret)
 }
 
+"quasiSamp_fromhyperRect" <- function( nSampsToConsider, randStartType=2, designParams) {
+  #Generate quasi random numbers within survey area
+  
+  #initialise the sequence and subsample from it
+  samp <- randtoolbox::halton( nSampsToConsider*2, dim=designParams$dimension+1, init=TRUE) #The big sequence of quasi random numbers
+  if( randStartType==1)
+    skips <- rep( sample( 1:nSampsToConsider, size=1, replace=TRUE), designParams$dimension+1)
+  if( randStartType==2)
+    skips <- sample( 1:nSampsToConsider, size=designParams$dimension+1, replace=TRUE) #the start points
+  samp <- do.call( "cbind", lapply( 1:(designParams$dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
+  
+  #convert to scale of study region
+  myRange <- apply( designParams$study.area, -1, range)  
+  for( ii in 1:designParams$dimension)
+    samp[,ii] <- myRange[1,ii] + (myRange[2,ii]-myRange[1,ii]) * samp[,ii]
+  #select those points within study area
+  if( designParams$dimension==2){
+    tmp <- mgcv::in.out( designParams$study.area, samp[,1:designParams$dimension])
+    samp <- samp[tmp,] #get rid of samples that are outside the study region
+  }
+  return( samp)
+}
+
+
 "quasiSamp" <- function( n, dimension=2, study.area=NULL, potential.sites=NULL, 
                          inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) {
   #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
   #Distances between x- and y-locations need not be equal -- but why would they not be?
 
   designParams <- setDesignParams( dimension, study.area, potential.sites, inclusion.probs)
-  
-  #Generate lots of quasi random numbers
-  #initialise the sequence and subsample from it
-  samp <- randtoolbox::halton( nSampsToConsider*2, dim=dimension+1, init=TRUE) #The big sequence of quasi random numbers
-  if( randStartType==1)
-    skips <- rep( sample( 1:nSampsToConsider, size=1, replace=TRUE), dimension+1)
-  if( randStartType==2)
-    skips <- sample( 1:nSampsToConsider, size=dimension+1, replace=TRUE) #the start points
-  samp <- do.call( "cbind", lapply( 1:(designParams$dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
-    
-  #convert to scale of study region
-  myRange <- apply( designParams$study.area, -1, range)  
-  for( ii in 1:designParams$dimension)
-    samp[,ii] <- myRange[1,ii] + (myRange[2,ii]-myRange[1,ii]) * samp[,ii]
-  if( designParams$dimension==2){
-    tmp <- mgcv::in.out( designParams$study.area, samp[,1:designParams$dimension])
-    samp <- samp[tmp,] #get rid of samples that are outside the study region
-  }
-    
-  #container for the IDs of sampled sites
-  sampIDs <- class::knn1( designParams$potential.sites, samp[,1:designParams$dimension,drop=FALSE], 1:nrow( designParams$potential.sites))
-  sampIDs.2 <- which( samp[,designParams$dimension+1] < designParams$inclusion.probs1[sampIDs])
 
+  #Generate lots of points within the study area
+  samp <- quasiSamp_fromhyperRect( nSampsToConsider, randStartType=2, designParams)
+  
+  #make sure that the samples are 'not in the middle of nowhere'
+  #Get the distance between grid centres -- figure out grid's geometry
+  # Casting required as standard apply() call may return a matrix, vector or a list.
+  # This will always be a list
+  c2cAll <- lapply( as.data.frame( designParams$potential.sites), function(xx) sort( unique( xx)))
+  # Find min distances
+  c2c <- sapply( c2cAll, function(xx) min( diff( xx)))
+  
+  #find closest within-area cell
+  sampIDs <- class::knn1( designParams$potential.sites, samp[,1:designParams$dimension,drop=FALSE], 1:nrow( designParams$potential.sites))
+  
+  #Get the distances of all samples and their closest potential.site in both x and y and z and ... directions
+  closePotential <- designParams$potential.sites[sampIDs,]
+  dist.1d <- abs( closePotential - samp[,1:designParams$dimension,drop=FALSE])
+  within.cells <- matrix( NA, nrow=nrow( dist.1d), ncol=ncol( dist.1d))
+  for( ii in 1:designParams$dimension)  within.cells[,ii] <- dist.1d[,ii] <= c2c[ii]
+  #are they in cell within the survey area?
+  inArea <- rowSums( within.cells) == designParams$dimension  #is the point within cell in all dimensions?
+  
+  #reduce
+  samp <- samp[inArea,]
+  sampIDs <- sampIDs[inArea]
+  sampIDs.2 <- which( samp[,designParams$dimension+1] < designParams$inclusion.probs1[sampIDs])
+  
   if( length( sampIDs.2) >= n)
     sampIDs <- sampIDs[sampIDs.2][1:n]
   else

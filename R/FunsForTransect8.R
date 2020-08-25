@@ -62,7 +62,7 @@
   ret$points <- do.call( "rbind", ret$points)
   ret$points <- cbind( ret$points, do.call( 'c', lapply( transIDs, function(x) locProbs.raw$cell.probs[x$site, x$rotate, ])))
   ret$points <- cbind( ret$points, locProbs.edge$cells[do.call( 'c', lapply( transIDs, function(x) locProbs.raw$IDs[x$site, x$rotate, ]))])
-  colnames( ret$points) <- c( "transect", paste0( "start_", names( transIDs[[1]]$start_locat)), "direction", names( transIDs[[1]]$start_locat), "specifiedInclProb", "AdjustedInclProb")
+  colnames( ret$points) <- c( "transect", paste0( "mid_", names( transIDs[[1]]$start_locat)), "direction", names( transIDs[[1]]$start_locat), "specifiedInclProb", "AdjustedInclProb")
   ret$points <- as.data.frame( ret$points)
   ret$transect <- as.data.frame( ret$transect)
   
@@ -612,15 +612,28 @@
                  ifelse( tmp > descend.cutoff, 1,
                          ifelse( tmp==descend.cutoff, 0, NA)))
   #supporting function for finding descending transects
-  innerFunny <- function(y){
+#  innerFunny <- function(y){
+#    if( all( y %in% c(0,1)) | all( y %in% c(0,-1)))
+#      return( "descend")
+#    if( all( y %in% c(NA, NaN)))
+#      return( "allNA_NaN")
+#    y1 <- na.omit( y)
+#    if( all( y1 %in% c(0,1)) | all( y1 %in% c(0,-1)))
+#      return( "descendAndNA_NaN")
+#    return( "upAndDown")  #default case capturing -1, 0, 1 (with/without NAs)
+#  }
+  innerFunny <- function( y){
     if( all( y %in% c(0,1)) | all( y %in% c(0,-1)))
       return( "descend")
-    if( all( y %in% c(NA, NaN)))
-      return( "allNA_NaN")
-    y1 <- na.omit( y)
-    if( all( y1 %in% c(0,1)) | all( y1 %in% c(0,-1)))
+    if( all( y %in% c(0,1,NA,NaN)) | all( y %in% c(0,-1,NA,NaN)))
       return( "descendAndNA_NaN")
-    return( "upAndDown")  #default case capturing -1, 0, 1 (with/without NAs)
+    if( all( y %in% c(NA,NaN)))
+      return( "allNA_NaN")
+    if( all( y %in% c(0,1,-1)))
+      return( "upAndDown")
+    if( all( y %in% c(0,1,-1,NA,NaN)))
+      return( "upAndDownAndNA_NaN")
+    return( "Dunno_PROBLEM")  #catch
   }
   tmp <- apply( tmp, 1, innerFunny)
   tmp[!tmptmp] <- "outsideArea"
