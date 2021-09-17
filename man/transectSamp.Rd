@@ -74,7 +74,7 @@ p <- n * p / sum( p)
 #This low-definition is done to avoid trouble with CRAN's checks 
 #(no example should take a long time to run).
 samp <- transectSamp( n, potential.sites=X, inclusion.probs=p, 
-		    control=list( transect.patter="line", nRotate=5, transect.nPts=5, mc.cores=7))
+		    control=list( transect.patter="line", nRotate=5, transect.nPts=5, mc.cores=1))
 plot( samp$points[,5:6], main="n=10 TRANSECTS")
 #tidy
 rm( N, n, X, p, samp)

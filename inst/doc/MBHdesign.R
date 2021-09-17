@@ -1,18 +1,18 @@
-## ----prelim, echo = FALSE, results="hide"--------------------------------
+## ----prelim, echo = FALSE, results="hide"-------------------------------------
 library( knitr)
 opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
                       dpi=300, fig.show = "hold", fig.align = "center")
 
-## ----setup1, eval=FALSE--------------------------------------------------
+## ----setup1, eval=FALSE-------------------------------------------------------
 #  install.packages( "MBHdesign")
 
-## ----setup2--------------------------------------------------------------
+## ----setup2-------------------------------------------------------------------
 library( MBHdesign)
 
-## ----setSeed-------------------------------------------------------------
+## ----setSeed------------------------------------------------------------------
 set.seed( 747)  #a 747 is a big plane
 
-## ----legacySites---------------------------------------------------------
+## ----legacySites--------------------------------------------------------------
 #number of samples
 n <- 10
 #number of points to sample from
@@ -26,7 +26,7 @@ legacySites <- matrix( runif( 6), ncol=2, byrow=TRUE)
 #names can be useful
 colnames( X) <- colnames( legacySites) <- c("X1","X2")
 
-## ----inclProbs, dpi=300, out.width='60%'---------------------------------
+## ----inclProbs, dpi=300, out.width='60%'--------------------------------------
 #non-uniform inclusion probabilities
 inclProbs <- 1-exp(-X[,1])
 #scaling to enforce summation to n
@@ -40,7 +40,7 @@ image( x=unique( X[,1]), y=unique( X[,2]),
 #The legacy locations
 points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 
-## ----alterInclProbs, dpi=300, out.width='60%'----------------------------
+## ----alterInclProbs, dpi=300, out.width='60%'---------------------------------
 #alter inclusion probabilities 
 #   so that new samples should be well-spaced from legacy
 altInclProbs <- alterInclProbs( legacy.sites=legacySites, 
@@ -53,7 +53,7 @@ image( x=unique( X[,1]), y=unique( X[,2]),
 #The legacy locations
 points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 
-## ----GetDesign, dpi=300, out.width='60%'---------------------------------
+## ----GetDesign, dpi=300, out.width='60%'--------------------------------------
 #generate the design according to the altered inclusion probabilities.
 samp <- quasiSamp( n=n, dimension=2, 
 	study.area=matrix( c(0,0, 0,1, 1,1, 1,0),ncol=2,  byrow=TRUE), 
@@ -67,10 +67,10 @@ image( x=unique( X[,1]), y=unique( X[,2]),
 points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 points( samp[,1:2], pch=21)
 
-## ----ShowDesign----------------------------------------------------------
+## ----ShowDesign---------------------------------------------------------------
 print( samp, row.names=FALSE)
 
-## ----GetData-------------------------------------------------------------
+## ----GetData------------------------------------------------------------------
 #generate some `observations' for the new sites
 Z <- 3*( X[samp$ID,1]+X[samp$ID,2]) + 
 			sin( 6*( X[samp$ID,1]+X[samp$ID,2]))
@@ -78,7 +78,7 @@ Z <- 3*( X[samp$ID,1]+X[samp$ID,2]) +
 Zlegacy <- 3*( legacySites[,1]+legacySites[,2]) + 
 			sin( 6*( legacySites[,1]+legacySites[,2]))
 
-## ----HTestimate----------------------------------------------------------
+## ----HTestimate---------------------------------------------------------------
 #the proportion of legacy sites in the whole sample
 fracLegacy <- nrow( legacySites) / (n+nrow( legacySites))
 #inclusion probabilities for legacy sites
@@ -92,7 +92,7 @@ mean.estimator <- fracLegacy * legacyHT + (1-fracLegacy) * newHT
 #print the mean
 print( mean.estimator)
 
-## ----NNestimate----------------------------------------------------------
+## ----NNestimate---------------------------------------------------------------
 #load the spsurvey package
 library( spsurvey)
 #rescale the inclusion probs 
@@ -107,19 +107,19 @@ se.estimator <- total.est( z=c(Z, Zlegacy),
 #print it
 print( se.estimator)
 
-## ----ModEstimate---------------------------------------------------------
+## ----ModEstimate--------------------------------------------------------------
 tmp <- modEsti( y=c( Z, Zlegacy), locations=rbind( X[samp$ID,], legacySites),
 	includeLegacyLocation=TRUE, legacyIDs=n + 1:nrow( legacySites),
 	predPts=X, control=list(B=1000))
 print( tmp)
 
-## ----Tidy----------------------------------------------------------------
+## ----Tidy---------------------------------------------------------------------
 #write csv
 write.csv( samp, file="pointSample1.csv", row.names=FALSE)
 #tidy
 rm( list=ls())
 
-## ----transSetup----------------------------------------------------------
+## ----transSetup---------------------------------------------------------------
 
 set.seed( 747)  #I'm currently on a 787, so it *almost* seems appropriate
 #number of transects
@@ -132,7 +132,7 @@ my.seq <- seq( from=offsetX, to=1-offsetX, length=sqrt(N))
 X <- expand.grid( my.seq, my.seq)
 colnames( X) <- c("X1","X2")
 
-## ----transIinclProbs, dpi=300, out.width='60%'---------------------------
+## ----transIinclProbs, dpi=300, out.width='60%'--------------------------------
 #non-uniform inclusion probabilities
 inclProbs <- 1-exp(-X[,1])
 #scaling to enforce summation to n
@@ -144,7 +144,7 @@ image( x=unique( X[,1]), y=unique( X[,2]),
     main="(Undadjusted) Inclusion Probabilities", 
     ylab=colnames( X)[2], xlab=colnames( X)[1])
 
-## ----transSetControl-----------------------------------------------------
+## ----transSetControl----------------------------------------------------------
 #my.control is a list that contains
 my.control <- list( 
   #the type of transect
@@ -157,7 +157,7 @@ my.control <- list(
   nRotate=9
 )
 
-## ----callTransectSamp----------------------------------------------------
+## ----callTransectSamp---------------------------------------------------------
 #take the transect sample
 samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs, 
 		    control=my.control)
@@ -168,13 +168,13 @@ image( x=unique( X[,1]), y=unique( X[,2]),
     ylab=colnames( X)[2], xlab=colnames( X)[1])
 points( samp$points[,5:6], pch=20, cex=0.6)
 
-## ----transTidy-----------------------------------------------------------
+## ----transTidy----------------------------------------------------------------
 #write csv
 write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
 #tidy
 rm( list=ls())
 
-## ----volSetup, fig.width=9.43--------------------------------------------
+## ----volSetup, fig.width=9.43-------------------------------------------------
 library( MASS)  #for the data
 library( fields)  #for image.plot
 library( MBHdesign) #for the spatial design and constraints
@@ -195,7 +195,7 @@ vol.control <- list( transect.pattern="line", transect.nPts=10,
 #In a real application, transect.nPts and nRotate may need to be increased
 #1 cores have been used to ensure generality for all computers. Use more to speed things up
 
-## ----volConstraint, fig.width=9.43---------------------------------------
+## ----volConstraint, fig.width=9.43--------------------------------------------
 vol.constraints <- findDescendingTrans( 
   potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height, 
   in.area=rep( TRUE, nrow( pot.sites)), control=vol.control)
@@ -220,7 +220,7 @@ image.plot( x=1:n.x, y=1:n.y, z=tmpMat,
             sub="Transects centered at cell (max 11)", asp=1)
 #There aren't any transects that are centred on ridges or depressions.
 
-## ----volSample, fig.width=9.43-------------------------------------------
+## ----volSample, fig.width=9.43------------------------------------------------
 #take the sample
 volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")], 
                          control=vol.control, 
@@ -230,12 +230,12 @@ image.plot( x=1:n.x, y=1:n.y, z=volcano,
             main="Uniform Probability Transect Sample", asp=1)
 points( volSamp$points[,c("x","y")], pch=20)
 
-## ----volTidy-------------------------------------------------------------
+## ----volTidy------------------------------------------------------------------
 #write csv
 write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
 #tidy
 rm( list=ls())
 
-## ----sessionInfo, results = "asis", echo = FALSE-------------------------
+## ----sessionInfo, results = "asis", echo = FALSE------------------------------
 toLatex(sessionInfo())
 
