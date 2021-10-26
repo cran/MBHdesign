@@ -95,15 +95,20 @@ print( mean.estimator)
 ## ----NNestimate---------------------------------------------------------------
 #load the spsurvey package
 library( spsurvey)
-#rescale the inclusion probs 
+#rescale the inclusion probs
 #   (the sample frames are the same in legacy and new sites)
-tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) * 
+tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) *
 						(n+nrow(legacySites))
+#create a temporary data frame
+tmpDat <- data.frame( siteID=c( samp$ID, paste0( "legacy", 1:nrow(legacySites))),
+                      wgt=1/tmpInclProbs,
+                      xcoord=c(samp$X1,legacySites[,1]),
+                      ycoord=c(samp$X2,legacySites[,2]), Z=c(Z,Zlegacy))
 #calculate the standard error
-se.estimator <- total.est( z=c(Z, Zlegacy), 
-	wgt=1/tmpInclProbs, 
-	x=c(X[samp$ID,1], legacySites[,1]), 
-	y=c(X[samp$ID,2], legacySites[,2]))$StdError[2]
+se.estimator <- cont_analysis( tmpDat, vars="Z",
+                      weight="wgt",
+                      xcoord="xcoord",
+                      ycoord="ycoord")$Mean$StdError
 #print it
 print( se.estimator)
 
@@ -139,14 +144,14 @@ inclProbs <- 1-exp(-X[,1])
 inclProbs <- n * inclProbs / sum( inclProbs)
 #uniform inclusion probabilities would be inclProbs <- rep( n/N, times=N)
 #visualise
-image( x=unique( X[,1]), y=unique( X[,2]), 
-    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
-    main="(Undadjusted) Inclusion Probabilities", 
+image( x=unique( X[,1]), y=unique( X[,2]),
+    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))),
+    main="(Undadjusted) Inclusion Probabilities",
     ylab=colnames( X)[2], xlab=colnames( X)[1])
 
 ## ----transSetControl----------------------------------------------------------
 #my.control is a list that contains
-my.control <- list( 
+my.control <- list(
   #the type of transect
   transect.pattern="line",
   #the length of transect
@@ -159,11 +164,11 @@ my.control <- list(
 
 ## ----callTransectSamp---------------------------------------------------------
 #take the transect sample
-samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs, 
+samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs,
 		    control=my.control)
-image( x=unique( X[,1]), y=unique( X[,2]), 
-    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
-    main="(Undadjusted) Inclusion Probabilities", 
+image( x=unique( X[,1]), y=unique( X[,2]),
+    z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))),
+    main="(Undadjusted) Inclusion Probabilities",
     sub="10 Transects",
     ylab=colnames( X)[2], xlab=colnames( X)[1])
 points( samp$points[,5:6], pch=20, cex=0.6)
@@ -196,37 +201,37 @@ vol.control <- list( transect.pattern="line", transect.nPts=10,
 #1 cores have been used to ensure generality for all computers. Use more to speed things up
 
 ## ----volConstraint, fig.width=9.43--------------------------------------------
-vol.constraints <- findDescendingTrans( 
-  potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height, 
+vol.constraints <- findDescendingTrans(
+  potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height,
   in.area=rep( TRUE, nrow( pot.sites)), control=vol.control)
-#this is a matrix with nrow given by the number of sites and ncol by 
+#this is a matrix with nrow given by the number of sites and ncol by
 #   the number of rotations around each site
 print( dim( vol.constraints))
 #The contents describe how the transect lays over the landscape
 #So, there are 15592 putative transects that ascend and descend
 #   (and can't be used in the sample)
 table( as.vector( vol.constraints))
-#convert to TRUE/FALSE 
-#Note that the final possible transect type ('descendAndNA') is 
+#convert to TRUE/FALSE
+#Note that the final possible transect type ('descendAndNA') is
 #   not present in these data
 #If present, we would have to decide to sample these or not
-vol.constraints.bool <- matrix( FALSE, nrow=nrow( vol.constraints), 
+vol.constraints.bool <- matrix( FALSE, nrow=nrow( vol.constraints),
                                 ncol=ncol( vol.constraints))
 vol.constraints.bool[vol.constraints %in% c("descend")] <- TRUE
 #Let's get a visual to see what has just been done.
 tmpMat <- matrix( apply( vol.constraints.bool, 1, sum), nrow=n.x, ncol=n.y)
-image.plot( x=1:n.x, y=1:n.y, z=tmpMat, 
-            main="Number of Transects", 
+image.plot( x=1:n.x, y=1:n.y, z=tmpMat,
+            main="Number of Transects",
             sub="Transects centered at cell (max 11)", asp=1)
 #There aren't any transects that are centred on ridges or depressions.
 
 ## ----volSample, fig.width=9.43------------------------------------------------
 #take the sample
-volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")], 
-                         control=vol.control, 
+volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")],
+                         control=vol.control,
                          constrainedSet=vol.constraints.bool)
 #visualise the sample
-image.plot( x=1:n.x, y=1:n.y, z=volcano, 
+image.plot( x=1:n.x, y=1:n.y, z=volcano,
             main="Uniform Probability Transect Sample", asp=1)
 points( volSamp$points[,c("x","y")], pch=20)
 

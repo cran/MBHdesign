@@ -1,25 +1,25 @@
-citHeader("To cite the MBHdesign package in publications please use the first reference. If the methods need citing, the please use one or more of the following references.")
+citHeader("To cite the MBHdesign package in publications please use one (or more) of the following.  For citing the package please use the first paper.  For citing the methods that the package implements, please cite the appropriate paper(s) from the last three papers.")
 
 citEntry(
 	entry="Article",
-	title="MBHdesign: An R-package for efficient spatial survey designs",
-	author=personList(as.person("S.D. Foster")),
-	year=2021,
+    title = "MBHdesign: An R-package for efficient spatial survey designs",
+	author = personList(as.person("S.D. Foster")),
+	year = 2021,
 	journal="Methods in Ecology and Evolution",
-	volume="8",
+	volume= "12",
 	pages="415-420",
-	textVersion=paste("Foster, S. D. MBHdesign: An R-package for efficient spatial survey designs Methods in Ecology and Evolution, 2021, 12, 415-420")
+	textVersion = paste("Foster, S. D. MBHdesign: An R-package for efficient spatial survey designs Methods in Ecology and Evolution, 2021, 12, 415-420")
 )
 
 citEntry(
 	entry="Article",
-	title="BAS: Balanced Acceptance Sampling of Natural Resources",
-	author=personList(as.person("B.L. Robertson"), as.person("J.A. Brown"), as.person("T. McDonald"), as.person("P. Jaksons")),
-	year=2013,
+    title = "BAS: Balanced Acceptance Sampling of Natural Resources",
+	author = personList(as.person("Robertson, B.L."), as.person("Brown, J.A."), as.person("McDonald, T."), as.person("Jacksons, P.")),
+	year = 2013,
 	journal="Biometrics",
-	volume="69",
-	pages="776-784",	
-	textVersion=paste("Robertson, B. L.; Brown, J. A.; McDonald, T. & Jaksons, P. BAS: Balanced Acceptance Sampling of Natural Resources, Biometrics, 2013, 69, 776-784")
+	volume= "69",
+	pages="776-784",
+	textVersion = paste("Robertson, B. L.; Brown, J. A.; McDonald, T. & Jaksons, P. BAS: Balanced Acceptance Sampling of Natural Resources. Biometrics, 2013, 69, 776-784")
 )
 
 citEntry(
@@ -35,12 +35,12 @@ citEntry(
 
 citEntry(
 	entry="Article",
-	title = "Spatially-Balanced Designs for Transect-Based Surveys",
+    title = "Spatially-Balanced Designs for Transect-Based Surveys",
 	author = personList(as.person("S.D. Foster"), as.person("G.R. Hosack"), as.person("J. Monk"), as.person("E. Lawrence"), as.person( "N.S. Barrett"), as.person( "A. Williams"), as.person("R. Przeslawski")),
-	year = "2020",
+	year = "accepted",
 	journal="Methods in Ecology and Evolution",
-	volume= "11",
-	pages="95-105",
-	textVersion = paste("Foster, S.D., Hosack, G.R., J. Monk, Lawrence, E., Barrett, N.S., Williams, A. and Przeslawski, P. Spatially-Balanced Designs for Transect-Based Surveys. Methods in Ecology and Evolution, 2020, 11, 95-105")
+	volume= "",
+	pages="",
+	textVersion = paste("Foster, S.D., Hosack, G.R., J. Monk, Lawrence, E., Barrett, N.S., Williams, A. and Przeslawski, P. Spatially-Balanced Designs for Transect-Based Surveys. Methods in Ecology and Evolution (accepted)")
 )
 

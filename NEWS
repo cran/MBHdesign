@@ -1,0 +1,8 @@
+MBHdesign v2.1.9 (Release date: 2021-10-26)
+==============
+
+Changes:
+
+* Changes to vignette to accommodate changes in package dependency (spsurvey).
+* Changes to CITATION
+* Addition of NEWS (this file).

@@ -54,6 +54,7 @@ The control list contains the following elements.
 }
 \examples{
 \donttest{
+\dontrun{
 #generate samples on a 50 x 50 grid
 #Note that, although the random number is set, there may be differences between versions of R. 
 #In particular, post R/3.6 might be different to R/3.5 and before
@@ -74,10 +75,11 @@ p <- n * p / sum( p)
 #This low-definition is done to avoid trouble with CRAN's checks 
 #(no example should take a long time to run).
 samp <- transectSamp( n, potential.sites=X, inclusion.probs=p, 
-		    control=list( transect.patter="line", nRotate=5, transect.nPts=5, mc.cores=1))
+		    control=list( transect.patter="line", nRotate=5, transect.nPts=5, mc.cores=7))
 plot( samp$points[,5:6], main="n=10 TRANSECTS")
 #tidy
 rm( N, n, X, p, samp)
+}
 }
 }
 \keyword{misc}
