@@ -320,10 +320,16 @@
   return( samp)
 }
 
-
 "quasiSamp" <- function( n, dimension=2, study.area=NULL, potential.sites=NULL, 
                          inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) {
-  #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
+
+  #has a raster been passed?
+  if( inherits( inclusion.probs, "RasterLayer")){
+    samp <- quasiSamp.raster( n=n, inclusion.probs=inclusion.probs, randStartType=randStartType, nSampsToConsider=nSampsToConsider)
+    return( samp)
+  }			    
+			   
+  #Highly recommended that potential sites form a grid (but not a formal raster class -- just xyz).  In fact, it is mandatory (for searching)
   #Distances between x- and y-locations need not be equal -- but why would they not be?
 
   designParams <- setDesignParams( dimension, study.area, potential.sites, inclusion.probs)
@@ -366,3 +372,44 @@
   return( samp)
 }
 
+"quasiSamp.raster" <- function( n, inclusion.probs, randStartType=2, nSampsToConsider=5000) {
+  #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
+  #Distances between x- and y-locations need not be equal -- but why would they not be?
+  
+  #rasterized version of quasiSamp.  Works only for 2d, of course.  Should be faster than the arbitrary dimension version.
+  
+  if( !inherits( inclusion.probs, "RasterLayer"))
+    stop( "RasterLayer must be passed as input to inclusion.probs.  Please revise, or use quasiSamp (not quasiSamp.raster)")
+
+  raster::values( inclusion.probs) <- raster::values( inclusion.probs) / max( raster::values( inclusion.probs), na.rm=TRUE)
+
+  tmp1 <- extent( inclusion.probs)
+  tmp <- matrix( c( tmp1@xmin, tmp1@xmax, tmp1@ymin, tmp1@ymax), ncol=2, byrow=TRUE)#t( apply( raster::coordinates( inclusion.probs), 2, range))
+  designParams.short <- list( dimension=2, study.area=matrix( c( tmp[1,1],tmp[2,1], tmp[1,2], tmp[2,1], tmp[1,2], tmp[2,2], tmp[1,1],tmp[2,2]), ncol=2, byrow=TRUE))
+  
+  #Generate lots of points within the study area
+  samp <- quasiSamp_fromhyperRect( nSampsToConsider, randStartType=2, designParams=designParams.short)
+
+  #make sure that the samples are 'not in the middle of nowhere'
+  sampIDs <- raster::extract( inclusion.probs, samp[,1:2], cellnumbers=TRUE)
+  lotsOvals <- sampIDs[,2]
+  sampIDs <- sampIDs[,1]
+  #raster::values( inclusion.probs)[sampIDs[,1]]
+#  sampIDs <- sampIDs[!is.na( lotsOvals)]
+#  lotsOvals <- lotsOvals[!is.na( lotsOvals)]
+  
+  sampIDs.2 <- which( samp[,3] < lotsOvals)#designParams$inclusion.probs1[sampIDs])
+  
+  if( length( sampIDs.2) >= n){
+    sampIDs <- sampIDs[sampIDs.2][1:n]
+    lotsOvals <- lotsOvals[sampIDs.2][1:n]
+  }
+  else
+    stop( "Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
+
+  samp <- as.data.frame( cbind( raster::coordinates( inclusion.probs)[sampIDs,], lotsOvals, sampIDs))
+
+  colnames( samp) <- c( colnames( samp)[1:2], "inclusion.probabilities", "ID")
+  
+  return( samp)
+}
