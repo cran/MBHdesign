@@ -4,13 +4,16 @@ export( "alterInclProbs",
 "quasiSamp.raster",
 "transectSamp",
 "findDescendingTrans",
-"findTransFromPoint")
+"findTransFromPoint",
+"alterInclProbs.cluster",
+"quasiSamp.cluster")
 importFrom( "mgcv", "gam", "predict.gam", "in.out")
-importFrom( "geometry", "convhulln")
+importFrom( "geometry", "convhulln", "polyarea")
 importFrom( "randtoolbox", "halton")
 importFrom( "mvtnorm", "rmvnorm")
-importFrom( "stats", "pnorm", "uniroot", "update", "coef", "quantile", "rexp", "sd", "gaussian", "dist", "as.formula")
+importFrom( "stats", "pnorm", "uniroot", "update", "coef", "quantile", "median", "rexp", "sd", "gaussian", "dist")
 importFrom( "class", "knn1")
-importFrom( "raster", "extent", "values", "coordinates")
-importFrom( "parallel", "makeCluster", "clusterExport", "stopCluster", "detectCores", "parLapply")
-
+importFrom( "parallel", "makeCluster", "clusterExport", "parLapply", "stopCluster", "clusterEvalQ", "detectCores", "parSapply")
+importFrom( "grDevices", "grey")
+importFrom( "graphics", "par", "points", "mtext")
+importFrom( "terra", "rast", "values", "ext", "extract", "crds", "focalValues", "cellFromRowCol", "plot", "focalMat", "nrow", "ncol", "crs", "ncell", "wrap", "unwrap")

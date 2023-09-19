@@ -14,3 +14,10 @@ Changes:
 * Changes to vignette to accommodate changes in package dependency (spsurvey).
 * Changes to CITATION
 * Addition of NEWS (this file).
+
+MBHdesign v2.1.9 (Release date: 2022-October)
+==============
+
+Changes:
+
+* Introduce code for cluster sampling.  In particular alterInclusionProbs.cluster and quasiSamp.cluster

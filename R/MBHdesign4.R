@@ -31,11 +31,15 @@
         disty <- sqrt(disty)
         return(disty)
     }
-    cl <- parallel::makeCluster(mc.cores)
-    parallel::clusterExport(cl, c("potential.sites", "legacy.sites", 
-        "distFun4"), envir = environment())
-    tmp <- parallel::parLapply(cl, 1:nrow(legacy.sites), distFun4)
-    parallel::stopCluster(cl)
+    if( mc.cores >1){
+      cl <- parallel::makeCluster(mc.cores)
+      parallel::clusterExport(cl, c("potential.sites", "legacy.sites", 
+	  "distFun4"), envir = environment())
+      tmp <- parallel::parLapply(cl, 1:nrow(legacy.sites), distFun4)
+      parallel::stopCluster(cl)
+    }
+    else
+      tmp <- lapply( 1:nrow( legacy.sites), distFun4)
     tmp <- do.call("cbind", tmp)
     if( !is.null( n))
       inclusion.probs <- n * inclusion.probs / sum( inclusion.probs, na.rm=TRUE)
@@ -137,7 +141,7 @@
   if( seMethod=="BayesianBoot"){
     control <- getControl( control)
     funny <- function(x){
-      wts <- rexp( length(fm$y), 1)
+      wts <- stats::rexp( length(fm$y), 1)
       wts <- wts / sum( wts)
       fm1 <- stats::update( fm, weights=wts)
       return( stats::coef( fm1))
@@ -149,7 +153,7 @@
 	  stop("Crash. Probably due to matrix of prediction sites by bootstrap samples being too large for your machine.  Try reducing either or both")
 	preds <- fm$family$linkinv( etas)
   preds <- colMeans( preds)
-  ret <- list( mean=mean( preds), se=sd( preds), CI=stats::quantile( preds, c(0.025, 0.975)))
+  ret <- list( mean=mean( preds), se=stats::sd( preds), CI=stats::quantile( preds, c(0.025, 0.975)))
   return( ret)
 }
 
@@ -179,7 +183,7 @@
 }
 
 "modEsti" <- function( y, locations, includeLegacyLocation=TRUE, legacyIDs=NULL, predPts=NULL, 
-                       family=gaussian(), offset=rep(0,length(y)), control=list()) {
+                       family=stats::gaussian(), offset=rep(0,length(y)), control=list()) {
   control <- getControl( control)
   locations <- as.matrix( locations)
 	if( is.null( predPts)){ #if not provided then make up a grid
@@ -194,14 +198,14 @@
       stop("need to provide the rownumbers (of locations argument) that are legacy sites in the legacyIDs argument")
     formPart3 <- paste0("+combinedDistToLegacy")#paste0("+s(distToNearLegacy,k=control$k,bs='cr')")
     my.form <- paste0(my.form, formPart3)  
-    disty <- as.matrix( dist( locations, diag=TRUE, upper=TRUE)) #all locations
+    disty <- as.matrix( stats::dist( locations, diag=TRUE, upper=TRUE)) #all locations
     disty <- disty[,legacyIDs]
     sigma <- find.sigma( n=nrow( locations)-length( legacyIDs), nL=length( legacyIDs), potSites=predPts)
     combinedDistToLegacy <- rowSums( exp( -(disty^2)/(sigma*sigma) ) )
   }
   else
     combinedDistToLegacy <- rep( NA, length( y)) #distToNearLegacy <- rep( NA, length( y))
-  my.form <- as.formula( my.form)
+  my.form <- stats::as.formula( my.form)
   
   mod.dat <- as.data.frame( cbind( y, locations, combinedDistToLegacy))
 	fm <- mgcv::gam( my.form, data=mod.dat, family=family, offset=offset)
@@ -216,10 +220,14 @@
       disty <- sqrt( disty)
       return( disty)
     }
-    cl <- parallel::makeCluster( control$mc.cores)
-    parallel::clusterExport( cl, c("predPts", "locations", "legacyIDs", "distFun4"), envir=environment())
-    tmp <- parallel::parLapply( cl, 1:length( legacyIDs), distFun4)
-    parallel::stopCluster( cl)
+    if( control$mc.cores > 1){
+      cl <- parallel::makeCluster( control$mc.cores)
+      parallel::clusterExport( cl, c("predPts", "locations", "legacyIDs", "distFun4"), envir=environment())
+      tmp <- parallel::parLapply( cl, 1:length( legacyIDs), distFun4)
+      parallel::stopCluster( cl)
+    }
+    else
+      tmp <- lapply( 1:length( legacyIDs), distFun4)
     tmp1 <- do.call( "cbind", tmp)
     tmp1 <- exp( -(tmp1^2)/(sigma^2))
     combinedDistToLegacy <- rowSums( tmp1)
@@ -234,12 +242,12 @@
 	  stop("Crash. Probably due to matrix of prediction sites by B samples being too large for your machine.  Try reducing either or both (or getting more memory on your machine)")
 	preds <- fm$family$linkinv( etas)
   preds <- colMeans( preds)
-  ret <- list( mean=mean( preds), se=sd( preds), CI=quantile( preds, c(0.025, 0.975)))
+  ret <- list( mean=mean( preds), se=stats::sd( preds), CI=quantile( preds, c(0.025, 0.975)))
 
   return( ret)
 }
 
-"setDesignParams" <- function( dimension, study.area, potential.sites, inclusion.probs) {
+"setDesignParams" <- function( dimension, study.area, potential.sites, inclusion.probs, n) {
   if( is.null( study.area)){
     if( is.null( potential.sites)){
       message( "No study.area defined and no potential.sites given. Using unit interval/square/cube/hyper-cube (as dimension dictates)")
@@ -290,6 +298,8 @@
     message( "No inclusion.probs supplied, assuming uniform")
     inclusion.probs <- rep( 1/N, N) #even probs
   }
+  #standardise properly
+  inclusion.probs <- n * inclusion.probs / sum( inclusion.probs, na.rm=TRUE)
   #standardise inclusion probabilities (for efficient sampling)
   inclusion.probs1 <- inclusion.probs / max( inclusion.probs, na.rm=TRUE)
   
@@ -297,14 +307,14 @@
   return( ret)
 }
 
-"quasiSamp_fromhyperRect" <- function( nSampsToConsider, randStartType=2, designParams) {
+"quasiSamp_fromhyperRect" <- function( nSampsToConsider, randStartType=3, designParams) {
   #Generate quasi random numbers within survey area
   
   #initialise the sequence and subsample from it
   samp <- randtoolbox::halton( nSampsToConsider*2, dim=designParams$dimension+1, init=TRUE) #The big sequence of quasi random numbers
   if( randStartType==1)
     skips <- rep( sample( 1:nSampsToConsider, size=1, replace=TRUE), designParams$dimension+1)
-  if( randStartType==2)
+  if( randStartType %in% 2:3)
     skips <- sample( 1:nSampsToConsider, size=designParams$dimension+1, replace=TRUE) #the start points
   samp <- do.call( "cbind", lapply( 1:(designParams$dimension+1), function(x) samp[skips[x]+0:(nSampsToConsider-1),x]))  #a tedious way to paste it all together?  
   
@@ -320,96 +330,79 @@
   return( samp)
 }
 
-"quasiSamp" <- function( n, dimension=2, study.area=NULL, potential.sites=NULL, 
-                         inclusion.probs=NULL, randStartType=2, nSampsToConsider=5000) {
+quasiSamp <- function (n, dimension = 2, study.area = NULL, potential.sites = NULL, inclusion.probs = NULL, randStartType = 3, nSampsToConsider = 25*n, nStartsToConsider=100*n) 
+{
+  if (inherits(inclusion.probs, c( "RasterLayer", "SpatRast"))) {
+    samp <- quasiSamp.raster(n = n, inclusion.probs = inclusion.probs, randStartType = randStartType, nSampsToConsider = nSampsToConsider)
+    return(samp)
+  }
+  designParams <- setDesignParams(dimension, study.area, potential.sites, inclusion.probs, n=n)
+  c2cAll <- lapply(as.data.frame(designParams$potential.sites), function(xx) sort(unique(xx)))
+  c2c <- sapply(c2cAll, function(xx) min(diff(xx)))
 
-  #has a raster been passed?
-  if( inherits( inclusion.probs, "RasterLayer")){
-    samp <- quasiSamp.raster( n=n, inclusion.probs=inclusion.probs, randStartType=randStartType, nSampsToConsider=nSampsToConsider)
-    return( samp)
-  }			    
-			   
-  #Highly recommended that potential sites form a grid (but not a formal raster class -- just xyz).  In fact, it is mandatory (for searching)
-  #Distances between x- and y-locations need not be equal -- but why would they not be?
-
-  designParams <- setDesignParams( dimension, study.area, potential.sites, inclusion.probs)
-
-  #Generate lots of points within the study area
-  samp <- quasiSamp_fromhyperRect( nSampsToConsider, randStartType=2, designParams)
-  
-  #make sure that the samples are 'not in the middle of nowhere'
-  #Get the distance between grid centres -- figure out grid's geometry
-  # Casting required as standard apply() call may return a matrix, vector or a list.
-  # This will always be a list
-  c2cAll <- lapply( as.data.frame( designParams$potential.sites), function(xx) sort( unique( xx)))
-  # Find min distances
-  c2c <- sapply( c2cAll, function(xx) min( diff( xx)))
-  
-  #find closest within-area cell
-  sampIDs <- class::knn1( designParams$potential.sites, samp[,1:designParams$dimension,drop=FALSE], 1:nrow( designParams$potential.sites))
-  
-  #Get the distances of all samples and their closest potential.site in both x and y and z and ... directions
-  closePotential <- designParams$potential.sites[sampIDs,]
-  dist.1d <- abs( closePotential - samp[,1:designParams$dimension,drop=FALSE])
-  within.cells <- matrix( NA, nrow=nrow( dist.1d), ncol=ncol( dist.1d))
-  for( ii in 1:designParams$dimension)  within.cells[,ii] <- dist.1d[,ii] <= c2c[ii]
-  #are they in cell within the survey area?
-  inArea <- rowSums( within.cells) == designParams$dimension  #is the point within cell in all dimensions?
-  
-  #reduce
-  samp <- samp[inArea,]
-  sampIDs <- sampIDs[inArea]
-  sampIDs.2 <- which( samp[,designParams$dimension+1] < designParams$inclusion.probs1[sampIDs])
-  
-  if( length( sampIDs.2) >= n)
+  kount <- 1
+  repeat{
+    samp <- quasiSamp_fromhyperRect(nSampsToConsider, randStartType = randStartType, designParams) #randStartType was hardwired to be 2 (19 May 2023)
+    sampIDs <- class::knn1(designParams$potential.sites, samp[, 1:designParams$dimension, drop = FALSE], 1:nrow(designParams$potential.sites))
+    closePotential <- designParams$potential.sites[sampIDs, ]
+    dist.1d <- abs(closePotential - samp[, 1:designParams$dimension, drop = FALSE])
+    within.cells <- matrix(NA, nrow = nrow(dist.1d), ncol = ncol(dist.1d))
+    for (ii in 1:designParams$dimension) 
+      within.cells[, ii] <- dist.1d[,ii] <= c2c[ii]
+    inArea <- rowSums(within.cells) == designParams$dimension
+    samp <- samp[inArea, ]
+    sampIDs <- sampIDs[inArea]
+    sampIDs.2 <- which(samp[, designParams$dimension + 1] < designParams$inclusion.probs1[sampIDs])
+    if( (length( sampIDs.2) > 0) & (randStartType!=3 | sampIDs.2[1]==1))
+      break
+    kount <- kount + 1
+    if( kount > nStartsToConsider)
+      stop( "Failed to find a design. Too many starts when using the randomisation in Robertson et al (2017). Please consider 1) increasing nStartsToConsider (computationally more demanding), 2) try again (you may get lucky), 3) make inclusion probabilities more even (more likely but possibly undesireable).")
+  }
+  if (length(sampIDs.2) >= n) 
     sampIDs <- sampIDs[sampIDs.2][1:n]
-  else
-    stop( "Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
-
-  samp <- as.data.frame( cbind( designParams$potential.sites[sampIDs,,drop=FALSE], designParams$inclusion.probs[sampIDs], sampIDs))
-  colnames( samp) <- c( colnames( designParams$potential.sites), "inclusion.probabilities", "ID")
-
-  return( samp)
+  else 
+    stop("Failed to find a design. Too few samples considered for BAS. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")  
+#    stop("Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
+  samp <- as.data.frame(cbind(designParams$potential.sites[sampIDs,, drop = FALSE], designParams$inclusion.probs[sampIDs],sampIDs))
+  colnames(samp) <- c(colnames(designParams$potential.sites), "inclusion.probabilities", "ID")
+  return(samp)
 }
 
-"quasiSamp.raster" <- function( n, inclusion.probs, randStartType=2, nSampsToConsider=5000) {
-  #Highly recommended that potential sites form a grid (raster).  In fact, it is mandatory (for searching)
-  #Distances between x- and y-locations need not be equal -- but why would they not be?
+quasiSamp.raster <- function (n, inclusion.probs, randStartType = 3, nSampsToConsider = 25*n, nStartsToConsider=100*n) 
+{
+#  if (!inherits(inclusion.probs, "RasterLayer")) 
+#    inclusion.probs <- try( terra::rast( inclusion.probs), silent=TRUE)
+#  if (!inherits(inclusion.probs, "RasterLayer")) 
+#    stop("RasterLayer must be passed as input (argument inclusion.probs). It must be a RasterLayer, or something that can be coerced to a RasterLayer using raster::raster. Please revise, or use quasiSamp (not quasiSamp.raster)")
+  terra::values(inclusion.probs) <- terra::values(inclusion.probs)/max(terra::values(inclusion.probs), na.rm = TRUE)
+  #saving and scaling the defined IPs
+  IP.orig <- inclusion.probs
+  terra::values(IP.orig) <- terra::values(IP.orig)/sum(terra::values(IP.orig), na.rm = TRUE)
+  tmp1 <- terra::ext(inclusion.probs)
+  tmp <- matrix( tmp1[], ncol=2, byrow=TRUE)  #matrix(c(tmp1@xmin, tmp1@xmax, tmp1@ymin, tmp1@ymax), ncol = 2, byrow = TRUE)
+  designParams.short <- list(dimension = 2, study.area = matrix(c(tmp[1,1], tmp[2, 1], tmp[1, 2], tmp[2, 1], tmp[1, 2], tmp[2,2], tmp[1, 1], tmp[2, 2]), ncol = 2, byrow = TRUE))
   
-  #rasterized version of quasiSamp.  Works only for 2d, of course.  Should be faster than the arbitrary dimension version.
-  
-  if( !inherits( inclusion.probs, "RasterLayer"))
-    stop( "RasterLayer must be passed as input to inclusion.probs.  Please revise, or use quasiSamp (not quasiSamp.raster)")
-
-  raster::values( inclusion.probs) <- raster::values( inclusion.probs) / max( raster::values( inclusion.probs), na.rm=TRUE)
-
-  tmp1 <- extent( inclusion.probs)
-  tmp <- matrix( c( tmp1@xmin, tmp1@xmax, tmp1@ymin, tmp1@ymax), ncol=2, byrow=TRUE)#t( apply( raster::coordinates( inclusion.probs), 2, range))
-  designParams.short <- list( dimension=2, study.area=matrix( c( tmp[1,1],tmp[2,1], tmp[1,2], tmp[2,1], tmp[1,2], tmp[2,2], tmp[1,1],tmp[2,2]), ncol=2, byrow=TRUE))
-  
-  #Generate lots of points within the study area
-  samp <- quasiSamp_fromhyperRect( nSampsToConsider, randStartType=2, designParams=designParams.short)
-
-  #make sure that the samples are 'not in the middle of nowhere'
-  sampIDs <- raster::extract( inclusion.probs, samp[,1:2], cellnumbers=TRUE)
-  lotsOvals <- sampIDs[,2]
-  sampIDs <- sampIDs[,1]
-  #raster::values( inclusion.probs)[sampIDs[,1]]
-#  sampIDs <- sampIDs[!is.na( lotsOvals)]
-#  lotsOvals <- lotsOvals[!is.na( lotsOvals)]
-  
-  sampIDs.2 <- which( samp[,3] < lotsOvals)#designParams$inclusion.probs1[sampIDs])
-  
-  if( length( sampIDs.2) >= n){
+  kount <- 1
+  repeat{
+    samp <- quasiSamp_fromhyperRect(nSampsToConsider, randStartType = randStartType, designParams = designParams.short)
+    sampIDs <- terra::extract( x=inclusion.probs, y=samp[, 1:2], cells = TRUE)
+    lotsOvals <- sampIDs[, 2]
+    sampIDs <- sampIDs[, 1]
+    sampIDs.2 <- which(samp[, 3] < lotsOvals)
+    if( (length( sampIDs.2) > 0) & (randStartType!=3 | sampIDs.2[1]==1))
+      break
+    kount <- kount + 1
+    if( kount > nStartsToConsider)
+      stop( "Failed to find a design. Too many starts when using the randomisation in Robertson et al (2017). Please consider 1) increasing nStartsToConsider (computationally more demanding), 2) try again (you may get lucky), 3) make inclusion probabilities more even (more likely but possibly undesireable).")
+  }
+  if (length(sampIDs.2) >= n) {
     sampIDs <- sampIDs[sampIDs.2][1:n]
     lotsOvals <- lotsOvals[sampIDs.2][1:n]
   }
-  else
-    stop( "Failed to find a design. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
-
-  samp <- as.data.frame( cbind( raster::coordinates( inclusion.probs)[sampIDs,], lotsOvals, sampIDs))
-
-  colnames( samp) <- c( colnames( samp)[1:2], "inclusion.probabilities", "ID")
-  
-  return( samp)
+  else 
+    stop("Failed to find a design. Too few samples considered for BAS. It is possible that the inclusion probabilities are very low and uneven OR that the sampling area is very irregular (e.g. long and skinny) OR something else. Please try again (less likely to work) OR make inclusion probabilities more even (more likely but possibly undesireable) OR increase the number of sites considered (likely but computationally expensive).")
+  samp <- as.data.frame(cbind(terra::crds(inclusion.probs, na.rm=FALSE)[sampIDs,], terra::extract( x=IP.orig, y=terra::crds( inclusion.probs, na.rm=FALSE)[sampIDs,]), sampIDs))
+  colnames(samp) <- c(colnames(samp)[1:2], "inclusion.probabilities", "ID")
+  return(samp)
 }

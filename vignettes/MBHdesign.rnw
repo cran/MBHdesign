@@ -1,11 +1,11 @@
-%\VignetteIndexEntry{Spatially-Balanced Design with Legacy Sites}
+%\VignetteIndexEntry{An Introduction to MBHdesign}
 %\VignettePackage{MBHdesign}
 %\VignetteEngine{knitr::knitr}
 
 \documentclass[article,shortnames,nojss]{jss}
 
 %% almost as usual
-\author{Scott D. Foster\\CSIRO, Hobart, Tasmania, Australia}
+\author{Scott D. Foster\\Data61, CSIRO, Hobart, Tasmania, Australia}
 \title{An Introduction to \pkg{MBHdesign}}
 \date{\itshape\today}
 
@@ -18,16 +18,19 @@
 
 A robust scientific conclusion is the result of a rigorous scientific process. In observational ecology, this process involves making inferences about a population from a sample. The sample is crucial, and is the result of implementing a \textit{survey design}. A good survey design ensures that the data from the survey is capable of answering the research question. Better designs, such as spatially balanced designs, will also be as precise as possible given the constraints of the budget. 
 
-The MBHdesign package is useful for creating spatially balanced designs. There are three tasks that it is intended to address: 1) designing spatially-balanced surveys using Balanced Adaptive Sampling \citep[BAS][]{rob13}; 2) designing spatially-balanced transect-based surveys using the methods described in \citet{fos19}, and; 3) designing and analysing spatially-balanced surveys that incorporate existing legacy sites, using \citet{fos17a}. The first example in this tutorial generates a point-based design and shows how legacy sites can be incorporated. There are three steps to this process:
+The MBHdesign package is useful for creating spatially balanced designs. There are four tasks that it is intended to address: 1) designing spatially-balanced surveys using Balanced Adaptive Sampling \citep[BAS][]{rob13,rob17b}; 2) designing and analysing spatially-balanced surveys that incorporate existing legacy sites, using \citet{fos17a}; 3) designing spatially-balanced transect-based surveys using the methods described in \citet{fos20}, and; 4) designing spatially-balanced cluster designs \citet{fos23}. The first example in this tutorial generates a point-based design and shows how legacy sites can be incorporated. There are three steps to this process:
   \begin{enumerate}
   	\item Altering inclusion probabilities for spatial balance, taking into account the location of legacy sites. This is done using the function \texttt{alterInclProbs};
   	\item Generating spatially balanced designs for a given set of inclusion probabilities, through the function \texttt{quasiSamp}; and
   	\item Analysing some (made up) data using model-based methods (using \texttt{modEsti}).
   \end{enumerate}
-The second example in this tutorial generates a transect-based design over the same inclusion probabilities. This consists of just one substantive step: calling the \texttt{transectSamp} function.
+
+The second example in this tutorial generates a transect-based design over the same inclusion probabilities. This consists of just one substantive step: calling the \texttt{transectSamp} function. 
+
+The third example in this tutorial generates a clustered sample, where groups of sites are chosen to be spatially similar but these clusteres are spatially segregated. This process relies on use of the \texttt{quasSamp.cluster} function.
 }
-\Keywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Transect, Spatially Correlated Poisson Sampling, GRTS, \proglang{R}}
-\Plainkeywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Transect, Spatially Correlated Poisson Sampling, GRTS, R} %% without formatting
+\Keywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Transect, Cluster, \proglang{R}}
+\Plainkeywords{Spatially-Balanced Survey Design, Balanced Adaptive Sampling, Transect, Cluster, R} %% without formatting
 %% at least one keyword must be supplied
 
 \Address{
@@ -42,15 +45,14 @@ The second example in this tutorial generates a transect-based design over the s
 
 %\usepackage{fullpage}
 \usepackage{natbib}
-\usepackage{url}
+%\usepackage{url}
+\usepackage{hyperref}
 %\usepackage{nicefrac}
 
 \renewcommand{\thefootnote}{\fnsymbol{footnote}}
 
-\begin{document}
-%\SweaveOpts{concordance=TRUE}
 
-\footnotetext{This is an introduction to the MBHdesign R-pacakge (available from \url{https://cran.r-project.org/package=MBHdesign}). It has been developed as part of a NESP Marine Biodiversity Hub Project \url{https://www.nespmarine.edu.au/project/project-d2-standard-operating-procedures-survey-design-condition-assessment-and-trend}.}
+\begin{document}
 
 %<<prelim, echo = FALSE, results = "hide">>=
 <<prelim, echo = FALSE, results="hide">>=
@@ -59,26 +61,37 @@ opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
                       dpi=300, fig.show = "hold", fig.align = "center")
 @
 
-\begin{figure}[b]
-	\centering
-	\includegraphics[keepaspectratio=true, width=0.3\textwidth]{MB_Hub_MED.jpg}
-\end{figure}
+%\begin{figure}[b]
+%	\centering
+%	\includegraphics[keepaspectratio=true, width=0.3\textwidth]{MB_Hub_MED.jpg}
+%\end{figure}
 
 
 \section*{First Things First}
 
-Before starting with this introduction to \texttt{MBHdesign}, we need to make sure that everything is set up properly. Much of this will vary from computer to computer, but you must have a working version of R installed (preferably the recent release). This vignette was created using \Sexpr{sessionInfo()$R.version$version.string}. It does not matter whether you prefer to use R through a development environment (such as RStudio) or through the command line -- the results will be the same. So, start R and then:
+Before starting with this introduction to \texttt{MBHdesign}, we need to make sure that everything is set up properly. Much of this will vary from computer to computer, but you must have a working version of R installed (preferably the recent release). This vignette was created using \Sexpr{sessionInfo()$R.version$version.string}. It does not matter whether you prefer to use R through a development environment (such as RStudio) or through the command line -- the results will be the same. There are two ways to install \texttt{MBHdesign}. The first is through the \texttt{CRAN} repository. This version will not be updated very frequently, so it will not have the very latest developments (nor the associated bugs). This version can be installed by starting R and then submitting (at command line):
 <<setup1, eval=FALSE>>=
 install.packages( "MBHdesign")  
+## or ##
+devtools::install_github( repo="Scott-Foster/MBHdesign", build_vignettes=FALSE)
 @
-\noindent You will be asked which repository you want to use. Just use one that is geographically close to where you are (or where your computer is). Next load the package.
-<<setup2>>=
+\noindent If you install from CRAN, you will be asked which repository you want to use. Just use one that is geographically close to where you are (or where your computer is). Installing from the github repos will give you the most up to date version. However, do take note of the \texttt{build\_vignettes\=FALSE} argument: the vignette can take a while to build (and has already been pre-built).
+
+Whichever way the package is installed, you'll have to load it:
+<<setup2, eval=TRUE>>=
 library( MBHdesign)
 @
 \noindent For illustration is is also good to fix the random number seed, so that this document is reproducible \textit{exactly}. However, and due to R evoloving, the results may differ between different versions of R. In particular, R/3.6 could be quite different from R/3.5.
 <<setSeed>>=
 set.seed( 747)  #a 747 is a big plane
 @
+
+\noindent Technical note about version on CRAN. CRAN has some strict rules for packages that it hosts. One of these is that the package must not take long to build. This vignette breaks this rule... As a work-around the version of this vignette in the CRAN package uses precompiled data (with the usePrecompiledData variable set to TRUE). However, on GitHub the package does not use precompiled data.  You'll see locations in the code where the running of certain functions is conditional on this variable. Please don't be confused by it.
+<<precompiled>>=
+#TRUE if you want some of the examples shortened by using pre-saved output
+usePrecompiledData <- TRUE
+@
+
 \noindent Now, we are good to go with the rest of the introduction.
 
 \section*{A Point-Based Design}
@@ -101,7 +114,7 @@ colnames( X) <- colnames( legacySites) <- c("X1","X2")
 
 \subsection*{Inclusion Probabilities}
 
-Key to this whole design process is the concept of inclusion probabilities. Inclusion probabilities define the chance that any particular site will be part of the sample. So, if a site's inclusion probability is small, then the site is unlikely to be included into the sample. Specifying inclusion probabilities can improve efficiency of the sampling design. That is, standard errors can be reduced for a given number of samples. The `trick' is to specify inclusion probabilities so that the sites that should have highly variable observations are sampled more often \citep[e.g.][]{gra13}. In ecology, variance often increases with abundance \citep[due to Taylor's Power Law;][]{tay61}, so inclusion probabilities could be increased with abundance. If there is no knowledge about the area being sampled, then all sites should be given equal inclusion probabilities (equal to $\frac{n}{N}$). The only formal requirement, in terms of \texttt{MBHdesign}, is that the inclusion probabilities must sum to $n$.
+Key to this whole design process is the concept of inclusion probabilities. Inclusion probabilities define the chance that any particular site will be part of the sample. So, if a site's inclusion probability is small, then the site is unlikely to be included into the sample. Specifying inclusion probabilities can improve efficiency of the sampling design. That is, standard errors can be reduced for a given number of samples. The `trick' is to specify inclusion probabilities so that the sites that should have highly variable observations are sampled more often \citep[e.g.][]{gra13}. In ecology, variance often increases with abundance \citep[due to Taylor's Power Law;][]{tay61}, so inclusion probabilities could be increased with abundance. If there is no knowledge about the area being sampled, then all sites should be given equal inclusion probabilities. Frequently, a formal requirement is to constrain the inclusion probabilities so that they sum to $n$. While \texttt{MBHdesign} does not require this constraint, it can be useful for communication purposed.
 
 Here, we are going to pretend that there is some gradient in the variance of the population under study. We stress that this is illustrative only.
 <<inclProbs, dpi=300, out.width='60%'>>=
@@ -147,6 +160,8 @@ Irrespective of how the inclusion probabilities were obtained, we can now use th
 samp <- quasiSamp( n=n, dimension=2, 
 	study.area=matrix( c(0,0, 0,1, 1,1, 1,0),ncol=2,  byrow=TRUE), 
 	potential.sites=X, inclusion.probs=altInclProbs)
+#for faster sampling (large problems), 
+#	consider using quasiSamp.raster, which utilises SpatRaster formats
 #visualise
 image( x=unique( X[,1]), y=unique( X[,2]), 
     z=matrix( altInclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
@@ -202,7 +217,8 @@ library( spsurvey)
 tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) *
 						(n+nrow(legacySites))
 #create a temporary data frame
-tmpDat <- data.frame( siteID=c( samp$ID, paste0( "legacy", 1:nrow(legacySites))),
+tmpDat <- data.frame( siteID=
+		      c( samp$ID, paste0( "legacy", 1:nrow(legacySites))),
                       wgt=1/tmpInclProbs,
                       xcoord=c(samp$X1,legacySites[,1]),
                       ycoord=c(samp$X2,legacySites[,2]), Z=c(Z,Zlegacy))
@@ -229,17 +245,20 @@ In this case, the standard error estimates are quite different. On average, they
 
 The only remaining thing to do is to tidy up our workspace. First, to export our sample locations. Second, to remove all objects for this analysis from your workspace.
 <<Tidy>>=
-#write csv
-write.csv( samp, file="pointSample1.csv", row.names=FALSE)
+##write csv if wanted
+#write.csv( samp, file="pointSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "samp", "tmp", "se.estimator","tmpDat","tmpInclProbs",
+	    "mean.estimator","newHT","legacyHT","LegInclProbs",
+	    "fracLegacy","Zlegacy","Z","X","altInclProbs", "n", "N", 
+	    "my.seq","inclProbs", "offsetX", "legacySites"))
 @
 
 \newpage
 
 \section*{Transect-Based Surveys}
 
-Let's now pretend that we want to generate $n=10$ \textbf{transect} locations over a grid of points (representing the centres of a tessellation). We will use the methods described in \citet{fos19}. The transects are linear and are each of length 0.15, and the grid of points consists of $N=100\times100=10000$ points in 2-dimensional space (spanning the interval $[0,1]$ in both dimensions). For this example, we generate all information about the survey area and inclusion probabilities but in a real application, most of this information is likely to come from file (e.g. a shapefile).
+Let's now pretend that we want to generate $n=10$ \textbf{transect} locations over a grid of points (representing the centres of a tessellation). We will use the methods described in \citet{fos20}. The transects are linear and are each of length 0.15, and the grid of points consists of $N=100\times100=10000$ points in 2-dimensional space (spanning the interval $[0,1]$ in both dimensions). For this example, we generate all information about the survey area and inclusion probabilities but in a real application, most of this information is likely to come from file (e.g. a shapefile).
 
 A small word of warning: this example will take a little while to run.  Sorry.  Whilst choices have been made to reduce the computation, at the expense of accuracy, the computation is still quite intensive.
 
@@ -295,8 +314,13 @@ my.control <- list(
 The sample is obtained by a relatively straight-forward call. They are also plotted over the inclusion probabilities.
 <<callTransectSamp>>=
 #take the transect sample
-samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs,
-		    control=my.control)
+if( !usePrecompiledData){
+  samp <- transectSamp( n=n, potential.sites=X, 
+                inclusion.probs=inclProbs, control=my.control)
+} else{
+  samp <- readRDS( system.file(
+		    "extdata", "transectSamp1.RDS", 
+		    package="MBHdesign"))}
 image( x=unique( X[,1]), y=unique( X[,2]),
     z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))),
     main="(Undadjusted) Inclusion Probabilities",
@@ -309,24 +333,25 @@ points( samp$points[,5:6], pch=20, cex=0.6)
 
 The only remaining thing to do is to tidy up our workspace. First, to export our sample locations. Second, to remove all objects for this analysis from your workspace.
 <<transTidy>>=
-#write csv
-write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
+##write csv
+#write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "X", "inclProbs", "samp", "my.control", 
+	    "my.seq", "offsetX", "n", "N"))
 @
 
 \newpage
 
 \section*{A Harder/Constrained Transect-Based Survey}
 
-The design problem described in the previous section is pretty straight-forward as the sample space doesn't have any constraints upon it. Here, we make things more complicated in this respect, by forcing transects to go down-hill.  This mimics towed-platforms, such as underwater image tools, and was enforced in the seamount example in \citet{fos19}. As an illustration, we utilise the volcano altitude dataset from the excellent \texttt{MASS} package \citep{ven02}. The inclusion probabilities here are assumed to be uniform, so that the transects will be spatially-balanced, and even, throughout the study area.
+The design problem described in the previous section is pretty straight-forward as the sample space doesn't have any constraints upon it. Here, we make things more complicated in this respect, by forcing transects to go down-hill.  This mimics towed-platforms, such as underwater image tools, and was enforced in the seamount example in \citet{fos20}. As an illustration, we utilise the volcano altitude dataset from the excellent \texttt{MASS} package \citep{ven02}. The inclusion probabilities here are assumed to be uniform, so that the transects will be spatially-balanced, and even, throughout the study area.
 
 Forcing down-hill transects isn't the only type of constraint. However, it is illustrative.  Another type of constraint that we regularly encounter is, when sampling some certain types of seamounts, the desire to run the transects from `peak-to-base' so that all transects must start at the highest point of the seamount. This kind of constraint can be incorporated within \texttt{MBHdesign} using the function \texttt{findTransFromPoint}, which only allows transects from a specified set of points.
 
 <<volSetup, fig.width=9.43>>=
 library( MASS)  #for the data
 library( fields)  #for image.plot
-library( MBHdesign) #for the spatial design and constraints
+#library( MBHdesign) #for the spatial design and constraints
 set.seed( 717)  #Last plan I was on
 #number of transects
 n <- 20
@@ -342,15 +367,22 @@ pot.sites$height <- as.vector( volcano)
 vol.control <- list( transect.pattern="line", transect.nPts=10,
                      line.length=7, nRotate=11, mc.cores=1)
 #In a real application, transect.nPts and nRotate may need to be increased
-#1 cores have been used to ensure generality for all computers. Use more to speed things up
+#1 cores have been used to ensure generality for all computers. 
+#		Use more to speed things up
 @
 
 So, that is the data. Note that there are locations where transects could descent and then ascend. The `hole' (crater) in the middle of the mountain is the largest and most obvious example.  To avoid transects that ascend and descend, we use an \texttt{MBHdesign} function
 
 <<volConstraint, fig.width=9.43>>=
-vol.constraints <- findDescendingTrans(
-  potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height,
-  in.area=rep( TRUE, nrow( pot.sites)), control=vol.control)
+if( !usePrecompiledData){
+  vol.constraints <- findDescendingTrans(
+        potential.sites = pot.sites[,c("x","y")], 
+        bathy=pot.sites$height, in.area=rep( TRUE, nrow( pot.sites)), 
+        control=vol.control)
+} else{
+  vol.constraints <- readRDS( system.file(
+		    "extdata", "transectConstraints1.RDS", 
+		    package="MBHdesign"))}
 #this is a matrix with nrow given by the number of sites and ncol by
 #   the number of rotations around each site
 print( dim( vol.constraints))
@@ -377,9 +409,14 @@ The task is to now sample the reduced sampling frame. Fortunately, with the cons
 
 <<volSample, fig.width=9.43>>=
 #take the sample
-volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")],
+if( !usePrecompiledData){
+  volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")],
                          control=vol.control,
                          constrainedSet=vol.constraints.bool)
+} else{
+  volSamp <- readRDS( system.file(
+		    "extdata", "transectSamp2.RDS", 
+		    package="MBHdesign"))}
 #visualise the sample
 image.plot( x=1:n.x, y=1:n.y, z=volcano,
             main="Uniform Probability Transect Sample", asp=1)
@@ -388,23 +425,113 @@ points( volSamp$points[,c("x","y")], pch=20)
 
 The only remaining thing to do is to tidy up our workspace. First, to export our sample locations. Second, to remove all objects for this analysis from your workspace.
 <<volTidy>>=
-#write csv
-write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
+##write csv
+#write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "volSamp", "tmpMat", "vol.constraints.bool", 
+   "vol.constraints", "vol.control", "pot.sites", 
+   "n", "n.x", "n.y", "volcano"))
 @
 
-\section{Acknowledgements}
+\newpage
 
-This work was undertaken for the Marine Biodiversity Hub, a collaborative partnership supported through funding from the Australian Government's National Environmental Science Program. Our goal is to assist decision-makers to understand, manage and conserve Australia's environment by funding world-class biodiversity science. NESP Marine Biodiversity Hub partners include the Institute for Marine and Antarctic Studies, University of Tasmania; CSIRO, Geoscience Australia, Australian Institute of Marine Science, Museum Victoria, Charles Darwin University, University of Western Australia, NSW Office of Environment and Heritage, NSW Department of Primary Industries and the Integrated Marine Observing System.
+\section*{Clustered Surveys}
+
+The very nature of spatially-balanced designs implies that the sampling locations will be well spread out in space. Whilst this is statistically appealing (as it is usually efficient) it can also create logistic difficulties -- for example transit time between sampling locations is large. To overcome this logistical constraint, the function \texttt{quasiSamp.cluster} has the ability to group sampling locations into clusters. Spatial balance is maintained at both the between-cluster and within-cluster levels \citep[see][for details]{fos23}. A clustered sample, consisting of 10 clusters or 5 samples, will now be generated using an exaggerated version of data representing Soil Moisture at the Root Zone (SMRZ) over a 1km raster of the Australian Capital Territory \citep[see][]{fro18}.
+
+<<clusSetup>>=
+#need raster functions
+library( terra) 
+#import example data
+egDat <- rast(system.file(
+		    "extdata", "ACT_DemoData.grd", 
+		    package="MBHdesign"))$soilMoisture
+values( egDat) <- ( values( egDat) - min( values( egDat), na.rm=TRUE)) * 5
+@
+
+\subsection*{Take the Cluster Sample}
+
+The process of taking a clustered sample is almost as straightforward as a regular point-based sample, and the process mostly follows that of taking a point sample. However, some extra information is needed about the clusters themselves. The function quasiSamp.cluster performs all the necessary computations and produces an obvious output. We note that quasiSamp.cluster, like quasiSamp.raster, accepts only raster objects for the inclusion probabilities.
+
+<<clusterSamp>>=
+set.seed( 727)  
+#take the cluster sample
+#increase mc.cores for faster processing
+if( !usePrecompiledData){
+  samp <- quasiSamp.cluster( nCluster=10, clusterSize=5, clusterRadius=5, 
+				inclusion.probs = egDat, mc.cores=1)
+} else{
+  samp <- readRDS( system.file(
+		    "extdata", "clusterSamp1.RDS", 
+		    package="MBHdesign"))}
+#plot it over the egData data
+plot( egDat)
+#the sample points
+points( samp$x, samp$y, pch=20, cex=0.5)
+#the centres of the clusters 
+#		(not sample points but potentially useful nevertheless)
+points( attr( samp, "clusterDes")[,c("x","y")], pch=1, col='red', cex=0.5)
+@
+
+\subsection*{Take a Clustered Oversample}
+
+If/when an over-sample is required \citep[e.g.][lar08,van18], so that a survey can be expanded at future dates, including replacement of non-response sites (missing values), then an extra step is required. This is because the working inclusion probabilities, which are calculated within \texttt{quasiSamp.clust}, are calculated for the number of \textit{planned observations} and not the size of the \textit{planned over-sample}. Within the framework of MBHdesign this is achieved by first calculating the working inclusion probabilities \citep[see][]{fos23} for the `correctly sized' design and then useing these as the basis for an over-sample.
+
+In the design that follows, an over sample of clusters (15 drawn for 10 initial target) is taken. The planned cluster size is 5, but 10 are taken for each cluster to allow for drop-out. A property of BAS is that any contiguous set of samples is spatially-balanced, and this applies within each cluster and between clusters too.
+
+<<clusterOverSamp>>=
+#Create the working probabilties for the correct sized cluster.
+if( !usePrecompiledData){
+  workProbs <- alterInclProbs.cluster( nCluster=15, clusterSize=5, 
+                mc.cores=1, clusterRadius=5, inclusion.probs=egDat)
+} else{
+  workProbs <- readRDS( system.file(
+		    "extdata", "clusterWorkProbs1.RDS", 
+		    package="MBHdesign"))}
+#take the (over-sample)
+set.seed( 747)
+overSamp <- quasiSamp.cluster( nCluster=15, clusterSize=10, 
+		clusterRadius=5, working.inclusion.probs = workProbs)
+#plot the results
+par( mfrow=c(1,2))
+plot( egDat, main="Planned and Spare points")
+#the planned sample
+points( overSamp[overSamp$cluster<=10 & overSamp$point<=5,c("x","y")], cex=0.5)
+#the over-sample (within clusters 1:10)
+points( overSamp[overSamp$cluster<=10 & overSamp$point>5,c("x","y")], 
+		cex=0.5, col='red')
+plot( egDat, main="Over-sampled clusters")
+#the overs-sampled clusters (themselves oversampled)
+points( overSamp[overSamp$cluster>10 & overSamp$point<=5,c("x","y")], cex=0.5)
+points( overSamp[overSamp$cluster>10 & overSamp$point>5,c("x","y")], 
+		cex=0.5, col='red')
+@
+
+\subsection*{Last Things Last}
+
+The only remaining thing to do is to tidy up our workspace. First, to export our sample locations. Second, to remove objects for this analysis from your workspace.
+<<clusterTidy>>=
+##write csv
+#write.csv( as.data.frame( overSamp), 
+#      file="clusterSamp1.csv", row.names=FALSE)
+#tidy
+rm( list=c("egDat","overSamp","workProbs","samp","usePrecompiledData"))
+@
+
+
+\section*{Acknowledgements}
+
+This package started life as part of the  Marine Biodiversity Hub, a collaborative partnership supported through funding from the Australian Government's National Environmental Science Program. Our goal is to assist decision-makers to understand, manage and conserve Australia's environment by funding world-class biodiversity science. NESP Marine Biodiversity Hub partners include the Institute for Marine and Antarctic Studies, University of Tasmania; CSIRO, Geoscience Australia, Australian Institute of Marine Science, Museum Victoria, Charles Darwin University, University of Western Australia, NSW Office of Environment and Heritage, NSW Department of Primary Industries and the Integrated Marine Observing System.  You can check out the project \href{https://www.nespmarine.edu.au/project/project-d2-standard-operating-procedures-survey-design-condition-assessment-and-trend}{here}.
+
+Since this initial project, its life has been moulded by the needs of other projects -- notably the \href{https://www.csiro.au/en/research/indigenous-science/managing-country/koala-monitoring-program}{National Koala Monitoring Program}.
 
 %\bibliographystyle{authordate1}
 %\bibliography{/home/fos085/zoteroFiles/JabRefPDF/SDFReferences}
 \bibliography{./MBHdesign}
 
-\section{Appendix}
+\section*{Appendix}
 
-\subsection{Computational details}
+\subsection*{Computational details}
 This vignette was created using the following R and add-on package versions
 
 <<sessionInfo, results = "asis", echo = FALSE>>=

@@ -5,12 +5,18 @@ opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
 
 ## ----setup1, eval=FALSE-------------------------------------------------------
 #  install.packages( "MBHdesign")
+#  ## or ##
+#  devtools::install_github( repo="Scott-Foster/MBHdesign", build_vignettes=FALSE)
 
-## ----setup2-------------------------------------------------------------------
+## ----setup2, eval=TRUE--------------------------------------------------------
 library( MBHdesign)
 
 ## ----setSeed------------------------------------------------------------------
 set.seed( 747)  #a 747 is a big plane
+
+## ----precompiled--------------------------------------------------------------
+#TRUE if you want some of the examples shortened by using pre-saved output
+usePrecompiledData <- TRUE
 
 ## ----legacySites--------------------------------------------------------------
 #number of samples
@@ -58,6 +64,8 @@ points( legacySites, pch=21, bg=grey(0.75), cex=1.5)
 samp <- quasiSamp( n=n, dimension=2, 
 	study.area=matrix( c(0,0, 0,1, 1,1, 1,0),ncol=2,  byrow=TRUE), 
 	potential.sites=X, inclusion.probs=altInclProbs)
+#for faster sampling (large problems), 
+#	consider using quasiSamp.raster, which utilises SpatRaster formats
 #visualise
 image( x=unique( X[,1]), y=unique( X[,2]), 
     z=matrix( altInclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))), 
@@ -100,7 +108,8 @@ library( spsurvey)
 tmpInclProbs <- ( c( inclProbs[samp$ID], LegInclProbs) / n) *
 						(n+nrow(legacySites))
 #create a temporary data frame
-tmpDat <- data.frame( siteID=c( samp$ID, paste0( "legacy", 1:nrow(legacySites))),
+tmpDat <- data.frame( siteID=
+		      c( samp$ID, paste0( "legacy", 1:nrow(legacySites))),
                       wgt=1/tmpInclProbs,
                       xcoord=c(samp$X1,legacySites[,1]),
                       ycoord=c(samp$X2,legacySites[,2]), Z=c(Z,Zlegacy))
@@ -119,10 +128,13 @@ tmp <- modEsti( y=c( Z, Zlegacy), locations=rbind( X[samp$ID,], legacySites),
 print( tmp)
 
 ## ----Tidy---------------------------------------------------------------------
-#write csv
-write.csv( samp, file="pointSample1.csv", row.names=FALSE)
+##write csv if wanted
+#write.csv( samp, file="pointSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "samp", "tmp", "se.estimator","tmpDat","tmpInclProbs",
+	    "mean.estimator","newHT","legacyHT","LegInclProbs",
+	    "fracLegacy","Zlegacy","Z","X","altInclProbs", "n", "N", 
+	    "my.seq","inclProbs", "offsetX", "legacySites"))
 
 ## ----transSetup---------------------------------------------------------------
 
@@ -164,8 +176,13 @@ my.control <- list(
 
 ## ----callTransectSamp---------------------------------------------------------
 #take the transect sample
-samp <- transectSamp( n=n, potential.sites=X, inclusion.probs=inclProbs,
-		    control=my.control)
+if( !usePrecompiledData){
+  samp <- transectSamp( n=n, potential.sites=X, 
+                inclusion.probs=inclProbs, control=my.control)
+} else{
+  samp <- readRDS( system.file(
+		    "extdata", "transectSamp1.RDS", 
+		    package="MBHdesign"))}
 image( x=unique( X[,1]), y=unique( X[,2]),
     z=matrix( inclProbs, nrow=sqrt(nrow(X)), ncol=sqrt(nrow( X))),
     main="(Undadjusted) Inclusion Probabilities",
@@ -174,15 +191,16 @@ image( x=unique( X[,1]), y=unique( X[,2]),
 points( samp$points[,5:6], pch=20, cex=0.6)
 
 ## ----transTidy----------------------------------------------------------------
-#write csv
-write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
+##write csv
+#write.csv( samp$transect, file="transectSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "X", "inclProbs", "samp", "my.control", 
+	    "my.seq", "offsetX", "n", "N"))
 
 ## ----volSetup, fig.width=9.43-------------------------------------------------
 library( MASS)  #for the data
 library( fields)  #for image.plot
-library( MBHdesign) #for the spatial design and constraints
+#library( MBHdesign) #for the spatial design and constraints
 set.seed( 717)  #Last plan I was on
 #number of transects
 n <- 20
@@ -198,12 +216,19 @@ pot.sites$height <- as.vector( volcano)
 vol.control <- list( transect.pattern="line", transect.nPts=10,
                      line.length=7, nRotate=11, mc.cores=1)
 #In a real application, transect.nPts and nRotate may need to be increased
-#1 cores have been used to ensure generality for all computers. Use more to speed things up
+#1 cores have been used to ensure generality for all computers. 
+#		Use more to speed things up
 
 ## ----volConstraint, fig.width=9.43--------------------------------------------
-vol.constraints <- findDescendingTrans(
-  potential.sites = pot.sites[,c("x","y")], bathy=pot.sites$height,
-  in.area=rep( TRUE, nrow( pot.sites)), control=vol.control)
+if( !usePrecompiledData){
+  vol.constraints <- findDescendingTrans(
+        potential.sites = pot.sites[,c("x","y")], 
+        bathy=pot.sites$height, in.area=rep( TRUE, nrow( pot.sites)), 
+        control=vol.control)
+} else{
+  vol.constraints <- readRDS( system.file(
+		    "extdata", "transectConstraints1.RDS", 
+		    package="MBHdesign"))}
 #this is a matrix with nrow given by the number of sites and ncol by
 #   the number of rotations around each site
 print( dim( vol.constraints))
@@ -227,19 +252,88 @@ image.plot( x=1:n.x, y=1:n.y, z=tmpMat,
 
 ## ----volSample, fig.width=9.43------------------------------------------------
 #take the sample
-volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")],
+if( !usePrecompiledData){
+  volSamp <- transectSamp( n=n, potential.sites=pot.sites[,c("x","y")],
                          control=vol.control,
                          constrainedSet=vol.constraints.bool)
+} else{
+  volSamp <- readRDS( system.file(
+		    "extdata", "transectSamp2.RDS", 
+		    package="MBHdesign"))}
 #visualise the sample
 image.plot( x=1:n.x, y=1:n.y, z=volcano,
             main="Uniform Probability Transect Sample", asp=1)
 points( volSamp$points[,c("x","y")], pch=20)
 
 ## ----volTidy------------------------------------------------------------------
-#write csv
-write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
+##write csv
+#write.csv( volSamp$transect, file="volcanoSample1.csv", row.names=FALSE)
 #tidy
-rm( list=ls())
+rm( list=c( "volSamp", "tmpMat", "vol.constraints.bool", 
+   "vol.constraints", "vol.control", "pot.sites", 
+   "n", "n.x", "n.y", "volcano"))
+
+## ----clusSetup----------------------------------------------------------------
+#need raster functions
+library( terra) 
+#import example data
+egDat <- rast(system.file(
+		    "extdata", "ACT_DemoData.grd", 
+		    package="MBHdesign"))$soilMoisture
+values( egDat) <- ( values( egDat) - min( values( egDat), na.rm=TRUE)) * 5
+
+## ----clusterSamp--------------------------------------------------------------
+set.seed( 727)  
+#take the cluster sample
+#increase mc.cores for faster processing
+if( !usePrecompiledData){
+  samp <- quasiSamp.cluster( nCluster=10, clusterSize=5, clusterRadius=5, 
+				inclusion.probs = egDat, mc.cores=1)
+} else{
+  samp <- readRDS( system.file(
+		    "extdata", "clusterSamp1.RDS", 
+		    package="MBHdesign"))}
+#plot it over the egData data
+plot( egDat)
+#the sample points
+points( samp$x, samp$y, pch=20, cex=0.5)
+#the centres of the clusters 
+#		(not sample points but potentially useful nevertheless)
+points( attr( samp, "clusterDes")[,c("x","y")], pch=1, col='red', cex=0.5)
+
+## ----clusterOverSamp----------------------------------------------------------
+#Create the working probabilties for the correct sized cluster.
+if( !usePrecompiledData){
+  workProbs <- alterInclProbs.cluster( nCluster=15, clusterSize=5, 
+                mc.cores=1, clusterRadius=5, inclusion.probs=egDat)
+} else{
+  workProbs <- readRDS( system.file(
+		    "extdata", "clusterWorkProbs1.RDS", 
+		    package="MBHdesign"))}
+#take the (over-sample)
+set.seed( 747)
+overSamp <- quasiSamp.cluster( nCluster=15, clusterSize=10, 
+		clusterRadius=5, working.inclusion.probs = workProbs)
+#plot the results
+par( mfrow=c(1,2))
+plot( egDat, main="Planned and Spare points")
+#the planned sample
+points( overSamp[overSamp$cluster<=10 & overSamp$point<=5,c("x","y")], cex=0.5)
+#the over-sample (within clusters 1:10)
+points( overSamp[overSamp$cluster<=10 & overSamp$point>5,c("x","y")], 
+		cex=0.5, col='red')
+plot( egDat, main="Over-sampled clusters")
+#the overs-sampled clusters (themselves oversampled)
+points( overSamp[overSamp$cluster>10 & overSamp$point<=5,c("x","y")], cex=0.5)
+points( overSamp[overSamp$cluster>10 & overSamp$point>5,c("x","y")], 
+		cex=0.5, col='red')
+
+## ----clusterTidy--------------------------------------------------------------
+##write csv
+#write.csv( as.data.frame( overSamp), 
+#      file="clusterSamp1.csv", row.names=FALSE)
+#tidy
+rm( list=c("egDat","overSamp","workProbs","samp","usePrecompiledData"))
 
 ## ----sessionInfo, results = "asis", echo = FALSE------------------------------
 toLatex(sessionInfo())
