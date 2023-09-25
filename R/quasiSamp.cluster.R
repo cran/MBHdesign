@@ -24,6 +24,22 @@
   if( !is.null( working.inclusion.probs))
     if( is.na( terra::crs( working.inclusion.probs)))
       message( "No projection specified for working.inclusion.probs, assuming lat/long (could cause an error later")
+  if( length( nStartsToConsider) != 2){
+    if( length( nStartsToConsider) == 1){
+      message( "nStartsToConsider is a scalar when it should be a vector of length 2. Please consider, but continuing with the specified scalar replicated (for now)")
+      nStartsToConsider <- rep( nStartsToConsider, 2)
+    }
+    else
+      stop( "nStartsToConsider should be a integer vector of length 2.  See ?quasiSamp.cluster.")
+  }
+  if( length( nSampsToConsider) != 2){
+    if( length( nSampsToConsider) == 1){
+      message( "nSampsToConsider is a scalar when it should be a vector of length 2. Please consider, but continuing with the specified scalar replicated (for now)")
+      nSampsToConsider <- rep( nSampsToConsider, 2)
+    }
+    else
+      stop( "nSampsToConsider should be a integer vector of length 2.  See ?quasiSamp.cluster.")
+  }
     
   if( is.null( working.inclusion.probs)){
     message( "No working.inclusion.probs specified. Calculating now (with default computational options.")
@@ -41,8 +57,11 @@
   tmp <- cbind( tmp, IP.cond=unlist( tmp1))
   #coordinates
   tmp <- cbind( terra::xyFromCell( working.inclusion.probs$IP.w, tmp$cell), tmp[,c("cell","ID", "IP.s","IP.bar","IP.cond","IP.w")])
-  #turn into a list of SpatRast
-  tmpRast <- tapply( X=tmp, INDEX=tmp$ID, FUN=function(xx) terra::rast( xx[,c("x","y","cell","IP.s","IP.bar","IP.cond","IP.w")], type='xyz'))
+  #turn into a list of SpatRast (first try is down-grading to previous versions of R, second (tapply) seems to only work in later versions. Dumbing down for now.
+  tmpRast <- list()
+  for( ii in 1:length( unique( tmp$ID)))
+    tmpRast[[ii]] <- terra::rast( tmp[tmp$ID==unique( tmp$ID)[ii],c("x","y","cell","IP.s","IP.bar","IP.cond","IP.w")], type='xyz')
+#  tmpRast <- tapply( X=tmp, INDEX=tmp$ID, FUN=function(xx) terra::rast( xx[,c("x","y","cell","IP.s","IP.bar","IP.cond","IP.w")], type='xyz'))
   #spatial sample in each cluster
   tmp2 <- lapply( 1:nCluster, function(xx) quasiSamp.raster(n=clusterSize, inclusion.probs = tmpRast[[xx]]$IP.cond, randStartType=3, nSampsToConsider=nSampsToConsider[2], nStartsToConsider=nStartsToConsider[2]))
    

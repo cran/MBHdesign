@@ -16,7 +16,7 @@ set.seed( 747)  #a 747 is a big plane
 
 ## ----precompiled--------------------------------------------------------------
 #TRUE if you want some of the examples shortened by using pre-saved output
-usePrecompiledData <- TRUE
+usePrecompiledData <- FALSE
 
 ## ----legacySites--------------------------------------------------------------
 #number of samples

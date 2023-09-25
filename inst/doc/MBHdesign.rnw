@@ -89,7 +89,7 @@ set.seed( 747)  #a 747 is a big plane
 \noindent Technical note about version on CRAN. CRAN has some strict rules for packages that it hosts. One of these is that the package must not take long to build. This vignette breaks this rule... As a work-around the version of this vignette in the CRAN package uses precompiled data (with the usePrecompiledData variable set to TRUE). However, on GitHub the package does not use precompiled data.  You'll see locations in the code where the running of certain functions is conditional on this variable. Please don't be confused by it.
 <<precompiled>>=
 #TRUE if you want some of the examples shortened by using pre-saved output
-usePrecompiledData <- TRUE
+usePrecompiledData <- FALSE
 @
 
 \noindent Now, we are good to go with the rest of the introduction.
